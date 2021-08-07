@@ -11,7 +11,7 @@
 </ul>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.pig4cloud.plugin&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;idempotent-spring-boot-starter&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;0.0.4&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
 
-
+<span id="more"></span>
 
 <ul>
 <li><ol start="2">
@@ -86,6 +86,8 @@
     <title>Redis 分布式锁</title>
     <url>/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/</url>
     <content><![CDATA[<h1 id="Redis-分布式锁"><a href="#Redis-分布式锁" class="headerlink" title="Redis 分布式锁"></a>Redis 分布式锁</h1><h1 id="spring-boot-klock-starter"><a href="#spring-boot-klock-starter" class="headerlink" title="spring-boot-klock-starter"></a>spring-boot-klock-starter</h1><p>基于redis的分布式锁spring-boot starter组件，使得项目拥有分布式锁能力变得异常简单，支持spring boot，和spirng mvc等spring相关项目</p>
+<span id="more"></span>
+
 <h1 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h1><p>spring boot项目接入</p>
 <p>1.添加lock starter组件依赖，已上传到maven中央仓库</p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;cn.keking&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-klock-starter&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;1.4-RELEASE&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
@@ -145,16 +147,27 @@
     <title>JVM 垃圾回收</title>
     <url>/2021/08/05/JVM/</url>
     <content><![CDATA[<h3 id="本节常见面试题"><a href="#本节常见面试题" class="headerlink" title="本节常见面试题"></a>本节常见面试题</h3><p>问题答案在文中都有提到</p>
+<span id="more"></span>
+
 <ul>
-<li>如何判断对象是否死亡（两种方法）。</li>
-<li>简单的介绍一下强引用、软引用、弱引用、虚引用（虚引用与软引用和弱引用的区别、使用软引用能带来的好处）。</li>
-<li>如何判断一个常量是废弃常量</li>
-<li>如何判断一个类是无用的类</li>
-<li>垃圾收集有哪些算法，各自的特点？</li>
-<li>HotSpot 为什么要分为新生代和老年代？</li>
-<li>常见的垃圾回收器有哪些？</li>
-<li>介绍一下 CMS,G1 收集器。</li>
-<li>Minor Gc 和 Full GC 有什么不同呢？</li>
+<li><p>如何判断对象是否死亡（两种方法）。</p>
+</li>
+<li><p>简单的介绍一下强引用、软引用、弱引用、虚引用（虚引用与软引用和弱引用的区别、使用软引用能带来的好处）。</p>
+</li>
+<li><p>如何判断一个常量是废弃常量</p>
+</li>
+<li><p>如何判断一个类是无用的类</p>
+</li>
+<li><p>垃圾收集有哪些算法，各自的特点？</p>
+</li>
+<li><p>HotSpot 为什么要分为新生代和老年代？</p>
+</li>
+<li><p>常见的垃圾回收器有哪些？</p>
+</li>
+<li><p>介绍一下 CMS,G1 收集器。</p>
+</li>
+<li><p>Minor Gc 和 Full GC 有什么不同呢？</p>
+</li>
 </ul>
 <h3 id="本文导火索"><a href="#本文导火索" class="headerlink" title="本文导火索"></a><span class="exturl" data-url="aHR0cHM6Ly9zbmFpbGNsaW1iLmdpdGVlLmlvL2phdmFndWlkZS8jL2RvY3MvamF2YS9qdm0vSlZNJUU1JTlFJTgzJUU1JTlDJUJFJUU1JTlCJTlFJUU2JTk0JUI2P2lkPSVFNiU5QyVBQyVFNiU5NiU4NyVFNSVBRiVCQyVFNyU4MSVBQiVFNyVCNCVBMg==">本文导火索<i class="fa fa-external-link-alt"></i></span></h3><p><img src="/images/JVM/29176325.png" alt="img"></p>
 <p>当需要排查各种内存溢出问题、当垃圾收集成为系统达到更高并发的瓶颈时，我们就需要对这些“自动化”的技术实施必要的监控和调节。</p>
