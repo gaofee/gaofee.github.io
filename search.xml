@@ -144,6 +144,60 @@
       </categories>
   </entry>
   <entry>
+    <title>整合elk日志收集</title>
+    <url>/2021/08/08/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/</url>
+    <content><![CDATA[<h1 id="整合elk-日志收集"><a href="#整合elk-日志收集" class="headerlink" title="整合elk 日志收集"></a>整合elk 日志收集</h1><p>ELK即Elasticsearch、Logstash、Kibana,组合起来可以搭建线上日志系统，在目前这种分布式微服务系统中，通过ELK 会非常方便的查询和统计日志情况.</p>
+<span id="more"></span>
+
+<h2 id="ELK中各个服务的作用"><a href="#ELK中各个服务的作用" class="headerlink" title="ELK中各个服务的作用"></a>ELK中各个服务的作用</h2><ul>
+<li><p>Elasticsearch:用于存储收集到的日志信息；</p>
+</li>
+<li><p>Logstash:用于收集日志，应用整合了Logstash以后会把日志发送给Logstash,Logstash再把日志转发给Elasticsearch；</p>
+</li>
+<li><p>Kibana:通过Web端的可视化界面来查看日志。</p>
+</li>
+</ul>
+<h2 id="使用Docker-Compose-搭建ELK环境"><a href="#使用Docker-Compose-搭建ELK环境" class="headerlink" title="使用Docker Compose 搭建ELK环境"></a>使用Docker Compose 搭建ELK环境</h2><h3 id="编写docker-compose-yml脚本启动ELK服务"><a href="#编写docker-compose-yml脚本启动ELK服务" class="headerlink" title="编写docker-compose.yml脚本启动ELK服务"></a>编写docker-compose.yml脚本启动ELK服务</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">version: &#x27;3&#x27;</span><br><span class="line">services:</span><br><span class="line">  elasticsearch:</span><br><span class="line">    image: elasticsearch:6.4.0</span><br><span class="line">    container_name: elasticsearch</span><br><span class="line">    environment:</span><br><span class="line">      - &quot;cluster.name=elasticsearch&quot; #设置集群名称为elasticsearch</span><br><span class="line">      - &quot;discovery.type=single-node&quot; #以单一节点模式启动</span><br><span class="line">      - &quot;ES_JAVA_OPTS=-Xms512m -Xmx512m&quot; #设置使用jvm内存大小</span><br><span class="line">    volumes:</span><br><span class="line">      - /mydata/elasticsearch/plugins:/usr/share/elasticsearch/plugins #插件文件挂载</span><br><span class="line">      - /mydata/elasticsearch/data:/usr/share/elasticsearch/data #数据文件挂载</span><br><span class="line">    ports:</span><br><span class="line">      - 9200:9200</span><br><span class="line">  kibana:</span><br><span class="line">    image: kibana:6.4.0</span><br><span class="line">    container_name: kibana</span><br><span class="line">    links:</span><br><span class="line">      - elasticsearch:es #可以用es这个域名访问elasticsearch服务</span><br><span class="line">    depends_on:</span><br><span class="line">      - elasticsearch #kibana在elasticsearch启动之后再启动</span><br><span class="line">    environment:</span><br><span class="line">      - &quot;elasticsearch.hosts=http://es:9200&quot; #设置访问elasticsearch的地址</span><br><span class="line">    ports:</span><br><span class="line">      - 5601:5601</span><br><span class="line">  logstash:</span><br><span class="line">    image: logstash:6.4.0</span><br><span class="line">    container_name: logstash</span><br><span class="line">    volumes:</span><br><span class="line">      - /mydata/logstash/upms-logstash.conf:/usr/share/logstash/pipeline/logstash.conf </span><br><span class="line">    depends_on:</span><br><span class="line">      - elasticsearch #kibana在elasticsearch启动之后再启动</span><br><span class="line">    links:</span><br><span class="line">      - elasticsearch:es #可以用es这个域名访问elasticsearch服务</span><br><span class="line">    ports:</span><br><span class="line">      - 4560:4560</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="创建对应容器挂载目录"><a href="#创建对应容器挂载目录" class="headerlink" title="创建对应容器挂载目录"></a>创建对应容器挂载目录</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mkdir -p /mydata/logstash</span><br><span class="line"></span><br><span class="line">mkdir -p /mydata/elasticsearch/data</span><br><span class="line"></span><br><span class="line">mkdir -p /mydata/elasticsearch/plugins</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">chmod 777 /mydata/elasticsearch/data  # 给777权限，不然启动elasticsearch 可能会有权限问题</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="编写日志采集logstash"><a href="#编写日志采集logstash" class="headerlink" title="编写日志采集logstash"></a>编写日志采集logstash</h3><p>在  <code>/mydata/logstash</code>目录创建 <code>upms-logstash.conf</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">input &#123;</span><br><span class="line">  tcp &#123;</span><br><span class="line">    mode =&gt; &quot;server&quot;</span><br><span class="line">    host =&gt; &quot;0.0.0.0&quot;</span><br><span class="line">    port =&gt; 4560</span><br><span class="line">    codec =&gt; json_lines</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">output &#123;</span><br><span class="line">  elasticsearch &#123;</span><br><span class="line">    hosts =&gt; &quot;es:9200&quot;</span><br><span class="line">    index =&gt; &quot;upms-logstash-%&#123;+YYYY.MM.dd&#125;&quot;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="启动ELK-服务"><a href="#启动ELK-服务" class="headerlink" title="启动ELK 服务"></a>启动ELK 服务</h3><p>在<code>docker-compose.yml</code> 同级目录执行 <code>docker-compose up -d</code></p>
+<p>注意：Elasticsearch启动可能需要好几分钟，要耐心等待。</p>
+<p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153415.png" alt="img"></p>
+<h3 id="logstash-安装json-lines-格式插件"><a href="#logstash-安装json-lines-格式插件" class="headerlink" title="logstash 安装json_lines 格式插件"></a>logstash 安装json_lines 格式插件</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># 进入logstash容器</span><br><span class="line">docker exec -it logstash /bin/bash</span><br><span class="line"># 进入bin目录</span><br><span class="line">cd /bin/</span><br><span class="line"># 安装插件</span><br><span class="line">logstash-plugin install logstash-codec-json_lines</span><br><span class="line"># 退出容器</span><br><span class="line">exit</span><br><span class="line"># 重启logstash服务</span><br><span class="line">docker restart logstash</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="访问宿主机5601-kibana"><a href="#访问宿主机5601-kibana" class="headerlink" title="访问宿主机5601 kibana"></a>访问宿主机5601 kibana</h3><p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153435.png" alt="img"></p>
+<h2 id="pig-服务整合Logstash"><a href="#pig-服务整合Logstash" class="headerlink" title="pig 服务整合Logstash"></a>pig 服务整合Logstash</h2><h3 id="添加pom-依赖"><a href="#添加pom-依赖" class="headerlink" title="添加pom 依赖"></a>添加pom 依赖</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;!--集成logstash--&gt;</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;net.logstash.logback&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;logstash-logback-encoder&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;5.3&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="logback-spring-xml-新增appender"><a href="#logback-spring-xml-新增appender" class="headerlink" title="logback-spring.xml 新增appender"></a>logback-spring.xml 新增appender</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"> &lt;!--输出到logstash的appender--&gt;</span><br><span class="line">&lt;appender name=&quot;LOGSTASH&quot; class=&quot;net.logstash.logback.appender.LogstashTcpSocketAppender&quot;&gt;</span><br><span class="line">    &lt;!--可以访问的logstash日志收集端口--&gt;</span><br><span class="line">    &lt;destination&gt;192.168.0.31:4560&lt;/destination&gt;</span><br><span class="line">    &lt;encoder charset=&quot;UTF-8&quot; class=&quot;net.logstash.logback.encoder.LogstashEncoder&quot;/&gt;</span><br><span class="line">&lt;/appender&gt;</span><br><span class="line">&lt;root level=&quot;INFO&quot;&gt;</span><br><span class="line">    &lt;appender-ref ref=&quot;LOGSTASH&quot;/&gt;</span><br><span class="line">&lt;/root&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="启动pigx-在kibana中查询日志"><a href="#启动pigx-在kibana中查询日志" class="headerlink" title="启动pigx 在kibana中查询日志"></a>启动pigx 在kibana中查询日志</h3><p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153454.png" alt="img"></p>
+<p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153508.png" alt="img"></p>
+<h2 id="同时采集多个模块日志"><a href="#同时采集多个模块日志" class="headerlink" title="同时采集多个模块日志"></a>同时采集多个模块日志</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">每个应用发送到不同的TCP 端口 这里注意logstash 的容器端口映射增加</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">input &#123;</span><br><span class="line">  tcp &#123;</span><br><span class="line">   add_field =&gt; &#123;&quot;service&quot; =&gt; &quot;upms&quot;&#125;</span><br><span class="line">    mode =&gt; &quot;server&quot;</span><br><span class="line">    host =&gt; &quot;0.0.0.0&quot;</span><br><span class="line">    port =&gt; 4560</span><br><span class="line">    codec =&gt; json_lines</span><br><span class="line">  &#125;</span><br><span class="line">  tcp &#123;</span><br><span class="line">   add_field =&gt; &#123;&quot;service&quot; =&gt; &quot;auth&quot;&#125;</span><br><span class="line">    mode =&gt; &quot;server&quot;</span><br><span class="line">    host =&gt; &quot;0.0.0.0&quot;</span><br><span class="line">    port =&gt; 4561</span><br><span class="line">    codec =&gt; json_lines</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">output &#123;</span><br><span class="line">   if [service] == &quot;upms&quot;&#123;</span><br><span class="line">    elasticsearch &#123;</span><br><span class="line">      hosts =&gt; &quot;es:9200&quot;</span><br><span class="line">      index =&gt; &quot;upms-logstash-%&#123;+YYYY.MM.dd&#125;&quot;</span><br><span class="line">    &#125;</span><br><span class="line">   &#125;</span><br><span class="line">  if [service] == &quot;auth&quot;&#123;</span><br><span class="line">    elasticsearch &#123;</span><br><span class="line">      hosts =&gt; &quot;es:9200&quot;</span><br><span class="line">      index =&gt; &quot;auth-logstash-%&#123;+YYYY.MM.dd&#125;&quot;</span><br><span class="line">    &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>分布式/微服务</category>
+      </categories>
+  </entry>
+  <entry>
     <title>JVM 垃圾回收</title>
     <url>/2021/08/05/JVM/</url>
     <content><![CDATA[<h3 id="本节常见面试题"><a href="#本节常见面试题" class="headerlink" title="本节常见面试题"></a>本节常见面试题</h3><p>问题答案在文中都有提到</p>
