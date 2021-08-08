@@ -147,13 +147,11 @@
     <title>JVM 垃圾回收</title>
     <url>/2021/08/05/JVM/</url>
     <content><![CDATA[<h3 id="本节常见面试题"><a href="#本节常见面试题" class="headerlink" title="本节常见面试题"></a>本节常见面试题</h3><p>问题答案在文中都有提到</p>
-<span id="more"></span>
-
 <ul>
 <li><p>如何判断对象是否死亡（两种方法）。</p>
 </li>
 <li><p>简单的介绍一下强引用、软引用、弱引用、虚引用（虚引用与软引用和弱引用的区别、使用软引用能带来的好处）。</p>
-</li>
+<span id="more"></span></li>
 <li><p>如何判断一个常量是废弃常量</p>
 </li>
 <li><p>如何判断一个类是无用的类</p>
