@@ -17,43 +17,43 @@
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"gitee.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":true},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":{"disqus":{"text":"Load Disqus","order":-1}}},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+    var CONFIG = {"hostname":"github.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":true},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":{"disqus":{"text":"Load Disqus","order":-1}}},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
   <meta name="description" content="本节常见面试题问题答案在文中都有提到  如何判断对象是否死亡（两种方法）。  简单的介绍一下强引用、软引用、弱引用、虚引用（虚引用与软引用和弱引用的区别、使用软引用能带来的好处）。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="JVM 垃圾回收">
-<meta property="og:url" content="https://gitee.com/itgaofee/yunji.git/2021/08/05/JVM/index.html">
+<meta property="og:url" content="https://github.com/itgaofee/yunji.git/2021/08/05/JVM/index.html">
 <meta property="og:site_name" content="云记">
 <meta property="og:description" content="本节常见面试题问题答案在文中都有提到  如何判断对象是否死亡（两种方法）。  简单的介绍一下强引用、软引用、弱引用、虚引用（虚引用与软引用和弱引用的区别、使用软引用能带来的好处）。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://gitee.com/images/JVM/29176325.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/01d330d8-2710-4fad-a91c-7bbbfaaefc0e.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/%E5%A0%86%E5%86%85%E5%AD%98.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/25178350.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/10317146.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/28954286.jpg">
-<meta property="og:image" content="https://gitee.com/images/JVM/28128785.jpg">
-<meta property="og:image" content="https://gitee.com/images/JVM/image-20210523201742303.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/b48228c2-ac00-4668-a78f-6f221f8563b5.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/11034259.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/72762049.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E7%AE%97%E6%B3%95.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/%E6%A0%87%E8%AE%B0-%E6%B8%85%E9%99%A4%E7%AE%97%E6%B3%95.jpeg">
-<meta property="og:image" content="https://gitee.com/images/JVM/90984624.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/94057049.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/46873026.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/22018368.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/parllel-scavenge%E6%94%B6%E9%9B%86%E5%99%A8.png">
-<meta property="og:image" content="https://gitee.com/images/JVM/CMS%E6%94%B6%E9%9B%86%E5%99%A8.png">
+<meta property="og:image" content="https://github.com/images/JVM/29176325.png">
+<meta property="og:image" content="https://github.com/images/JVM/01d330d8-2710-4fad-a91c-7bbbfaaefc0e.png">
+<meta property="og:image" content="https://github.com/images/JVM/%E5%A0%86%E5%86%85%E5%AD%98.png">
+<meta property="og:image" content="https://github.com/images/JVM/25178350.png">
+<meta property="og:image" content="https://github.com/images/JVM/10317146.png">
+<meta property="og:image" content="https://github.com/images/JVM/28954286.jpg">
+<meta property="og:image" content="https://github.com/images/JVM/28128785.jpg">
+<meta property="og:image" content="https://github.com/images/JVM/image-20210523201742303.png">
+<meta property="og:image" content="https://github.com/images/JVM/b48228c2-ac00-4668-a78f-6f221f8563b5.png">
+<meta property="og:image" content="https://github.com/images/JVM/11034259.png">
+<meta property="og:image" content="https://github.com/images/JVM/72762049.png">
+<meta property="og:image" content="https://github.com/images/JVM/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E7%AE%97%E6%B3%95.png">
+<meta property="og:image" content="https://github.com/images/JVM/%E6%A0%87%E8%AE%B0-%E6%B8%85%E9%99%A4%E7%AE%97%E6%B3%95.jpeg">
+<meta property="og:image" content="https://github.com/images/JVM/90984624.png">
+<meta property="og:image" content="https://github.com/images/JVM/94057049.png">
+<meta property="og:image" content="https://github.com/images/JVM/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8.png">
+<meta property="og:image" content="https://github.com/images/JVM/46873026.png">
+<meta property="og:image" content="https://github.com/images/JVM/22018368.png">
+<meta property="og:image" content="https://github.com/images/JVM/parllel-scavenge%E6%94%B6%E9%9B%86%E5%99%A8.png">
+<meta property="og:image" content="https://github.com/images/JVM/CMS%E6%94%B6%E9%9B%86%E5%99%A8.png">
 <meta property="article:published_time" content="2021-08-05T06:54:00.915Z">
 <meta property="article:modified_time" content="2021-08-08T03:16:18.490Z">
 <meta property="article:author" content="云记">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://gitee.com/images/JVM/29176325.png">
+<meta name="twitter:image" content="https://github.com/images/JVM/29176325.png">
 
-<link rel="canonical" href="https://gitee.com/itgaofee/yunji.git/2021/08/05/JVM/">
+<link rel="canonical" href="https://github.com/itgaofee/yunji.git/2021/08/05/JVM/">
 
 
 <script id="page-configurations">
@@ -206,7 +206,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://gitee.com/itgaofee/yunji.git/2021/08/05/JVM/">
+    <link itemprop="mainEntityOfPage" href="https://github.com/itgaofee/yunji.git/2021/08/05/JVM/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -349,13 +349,13 @@
 <p>如果对象在 Eden 出生并经过第一次 Minor GC 后仍然能够存活，并且能被 Survivor 容纳的话，将被移动到 Survivor 空间中，并将对象年龄设为 1.对象在 Survivor 中每熬过一次 MinorGC,年龄就增加 1 岁，当它的年龄增加到一定程度（默认为 15 岁），就会被晋升到老年代中。对象晋升到老年代的年龄阈值，可以通过参数 <code>-XX:MaxTenuringThreshold</code> 来设置。</p>
 <h3 id="1-4-动态对象年龄判定"><a href="#1-4-动态对象年龄判定" class="headerlink" title="1.4 动态对象年龄判定"></a><span class="exturl" data-url="aHR0cHM6Ly9zbmFpbGNsaW1iLmdpdGVlLmlvL2phdmFndWlkZS8jL2RvY3MvamF2YS9qdm0vSlZNJUU1JTlFJTgzJUU1JTlDJUJFJUU1JTlCJTlFJUU2JTk0JUI2P2lkPV8xNC0lRTUlOEElQTglRTYlODAlODElRTUlQUYlQjklRTglQjElQTElRTUlQjklQjQlRTklQkUlODQlRTUlODglQTQlRTUlQUUlOUE=">1.4 动态对象年龄判定<i class="fa fa-external-link-alt"></i></span></h3><p>大部分情况，对象都会首先在 Eden 区域分配，在一次新生代垃圾回收后，如果对象还存活，则会进入 s0 或者 s1，并且对象的年龄还会加 1(Eden 区-&gt;Survivor 区后对象的初始年龄变为 1)，当它的年龄增加到一定程度（默认为 15 岁），就会被晋升到老年代中。对象晋升到老年代的年龄阈值，可以通过参数 <code>-XX:MaxTenuringThreshold</code> 来设置。</p>
 <blockquote>
-<p>修正（<span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL1NuYWlsY2xpbWIvSmF2YUd1aWRlL2lzc3Vlcy81NTI=">issue552<i class="fa fa-external-link-alt"></i></span>）：“Hotspot 遍历所有对象时，按照年龄从小到大对其所占用的大小进行累积，当累积的某个年龄大小超过了 survivor 区的 50% 时（默认值是 50%，可以通过 <code>-XX:TargetSurvivorRatio=percent</code> 来设置，参见 <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL1NuYWlsY2xpbWIvSmF2YUd1aWRlL2lzc3Vlcy8xMTk5">issue1199<i class="fa fa-external-link-alt"></i></span> ），取这个年龄和 MaxTenuringThreshold 中更小的一个值，作为新的晋升年龄阈值”。</p>
+<p>修正（<a href="https://github.com/Snailclimb/JavaGuide/issues/552">issue552</a>）：“Hotspot 遍历所有对象时，按照年龄从小到大对其所占用的大小进行累积，当累积的某个年龄大小超过了 survivor 区的 50% 时（默认值是 50%，可以通过 <code>-XX:TargetSurvivorRatio=percent</code> 来设置，参见 <a href="https://github.com/Snailclimb/JavaGuide/issues/1199">issue1199</a> ），取这个年龄和 MaxTenuringThreshold 中更小的一个值，作为新的晋升年龄阈值”。</p>
 <p>jdk8官方文档引用 ：<span class="exturl" data-url="aHR0cHM6Ly9kb2NzLm9yYWNsZS5jb20vamF2YXNlLzgvZG9jcy90ZWNobm90ZXMvdG9vbHMvdW5peC9qYXZhLmh0bWw=">https://docs.oracle.com/javase/8/docs/technotes/tools/unix/java.html<i class="fa fa-external-link-alt"></i></span> 。</p>
 <p><img src="/images/JVM/image-20210523201742303.png" alt="img"></p>
 <p><strong>动态年龄计算的代码如下：</strong></p>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">uint <span class="title">ageTable::compute_tenuring_threshold</span><span class="params">(<span class="keyword">size_t</span> survivor_capacity)</span> </span>&#123;</span><br><span class="line"> <span class="comment">//survivor_capacity是survivor空间的大小</span></span><br><span class="line"> <span class="keyword">size_t</span> desired_survivor_size = (<span class="keyword">size_t</span>)((((<span class="keyword">double</span>)survivor_capacity)*TargetSurvivorRatio)/<span class="number">100</span>);</span><br><span class="line"> <span class="keyword">size_t</span> total = <span class="number">0</span>;</span><br><span class="line"> uint age = <span class="number">1</span>;</span><br><span class="line"> <span class="keyword">while</span> (age &lt; table_size) &#123;</span><br><span class="line">     <span class="comment">//sizes数组是每个年龄段对象大小</span></span><br><span class="line">     total += sizes[age];</span><br><span class="line">     <span class="keyword">if</span> (total &gt; desired_survivor_size) &#123;</span><br><span class="line">         <span class="keyword">break</span>;</span><br><span class="line">     &#125;</span><br><span class="line">     age++;</span><br><span class="line"> &#125;</span><br><span class="line"> uint result = age &lt; MaxTenuringThreshold ? age : MaxTenuringThreshold;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br><span class="line">Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
 
-<p>额外补充说明(<span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL1NuYWlsY2xpbWIvSmF2YUd1aWRlL2lzc3Vlcy82NzI=">issue672<i class="fa fa-external-link-alt"></i></span>)：<strong>关于默认的晋升年龄是 15，这个说法的来源大部分都是《深入理解 Java 虚拟机》这本书。</strong> 如果你去 Oracle 的官网阅读<span class="exturl" data-url="aHR0cHM6Ly9kb2NzLm9yYWNsZS5jb20vamF2YXNlLzgvZG9jcy90ZWNobm90ZXMvdG9vbHMvdW5peC9qYXZhLmh0bWw=">相关的虚拟机参数<i class="fa fa-external-link-alt"></i></span>，你会发现<code>-XX:MaxTenuringThreshold=threshold</code>这里有个说明</p>
+<p>额外补充说明(<a href="https://github.com/Snailclimb/JavaGuide/issues/672">issue672</a>)：<strong>关于默认的晋升年龄是 15，这个说法的来源大部分都是《深入理解 Java 虚拟机》这本书。</strong> 如果你去 Oracle 的官网阅读<span class="exturl" data-url="aHR0cHM6Ly9kb2NzLm9yYWNsZS5jb20vamF2YXNlLzgvZG9jcy90ZWNobm90ZXMvdG9vbHMvdW5peC9qYXZhLmh0bWw=">相关的虚拟机参数<i class="fa fa-external-link-alt"></i></span>，你会发现<code>-XX:MaxTenuringThreshold=threshold</code>这里有个说明</p>
 <p><strong>Sets the maximum tenuring threshold for use in adaptive GC sizing. The largest value is 15. The default value is 15 for the parallel (throughput) collector, and 6 for the CMS collector.默认晋升年龄并不都是 15，这个是要区分垃圾收集器的，CMS 就是 6.</strong></p>
 </blockquote>
 <h3 id="1-5-主要进行-gc-的区域"><a href="#1-5-主要进行-gc-的区域" class="headerlink" title="1.5 主要进行 gc 的区域"></a><span class="exturl" data-url="aHR0cHM6Ly9zbmFpbGNsaW1iLmdpdGVlLmlvL2phdmFndWlkZS8jL2RvY3MvamF2YS9qdm0vSlZNJUU1JTlFJTgzJUU1JTlDJUJFJUU1JTlCJTlFJUU2JTk0JUI2P2lkPV8xNS0lRTQlQjglQkIlRTglQTYlODElRTglQkYlOUIlRTglQTElOEMtZ2MtJUU3JTlBJTg0JUU1JThDJUJBJUU1JTlGJTlG">1.5 主要进行 gc 的区域<i class="fa fa-external-link-alt"></i></span></h3><p>周志明先生在《深入理解 Java 虚拟机》第二版中 P92 如是写道：</p>
@@ -668,7 +668,7 @@
 </div>
   <div class="links-of-author motion-element">
       <span class="links-of-author-item">
-        <a href="https://gitee.com/itgaofee" title="GitHub → https:&#x2F;&#x2F;gitee.com&#x2F;itgaofee"><i class="fab fa-github fa-fw"></i>GitHub</a>
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRlZS5jb20vaXRnYW9mZWU=" title="GitHub → https:&#x2F;&#x2F;gitee.com&#x2F;itgaofee"><i class="fab fa-github fa-fw"></i>GitHub</span>
       </span>
   </div>
 

@@ -1,88 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Redisson实现业务接口幂等</title>
-    <url>/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/</url>
-    <content><![CDATA[<h1 id="Redisson-实现业务接口幂等"><a href="#Redisson-实现业务接口幂等" class="headerlink" title="Redisson 实现业务接口幂等"></a>Redisson 实现业务接口幂等</h1><h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><ul>
-<li><ol>
-<li>引入依赖</li>
-</ol>
-</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.pig4cloud.plugin&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;idempotent-spring-boot-starter&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;0.0.4&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
-
-<span id="more"></span>
-
-<ul>
-<li><ol start="2">
-<li>配置 redis 链接相关信息</li>
-</ol>
-</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line">  cache:</span><br><span class="line">    type: redis</span><br><span class="line">  redis:</span><br><span class="line">    host: 127.0.0.1</span><br><span class="line">    port: 6379</span><br></pre></td></tr></table></figure>
-
-
-
-<p>理论是支持 <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL3JlZGlzc29uL3JlZGlzc29uL3RyZWUvbWFzdGVyL3JlZGlzc29uLXNwcmluZy1ib290LXN0YXJ0ZXI=">redisson-spring-boot-starter<i class="fa fa-external-link-alt"></i></span> 全部配置</p>
-<ul>
-<li><ol start="3">
-<li>接口设置注解</li>
-</ol>
-</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Idempotent(key = &quot;#demo.username&quot;, expireTime = 3, info = &quot;请勿重复查询&quot;)</span><br><span class="line">@GetMapping(&quot;/test&quot;)</span><br><span class="line">public String test(Demo demo) &#123;</span><br><span class="line">    return &quot;success&quot;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="idempotent-注解-配置详细说明"><a href="#idempotent-注解-配置详细说明" class="headerlink" title="idempotent 注解 配置详细说明"></a>idempotent 注解 配置详细说明</h2><ul>
-<li>幂等操作的唯一标识，使用spring el表达式 用#来引用方法参数 。 可为空则取 当前 url + args 做表示</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">String key();</span><br></pre></td></tr></table></figure>
-
-
-
-<ul>
-<li>有效期 默认：1 有效期要大于程序执行时间，否则请求还是可能会进来</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">int expireTime() default 1;</span><br></pre></td></tr></table></figure>
-
-
-
-<ul>
-<li>时间单位 默认：s （秒）</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">TimeUnit timeUnit() default TimeUnit.SECONDS;</span><br></pre></td></tr></table></figure>
-
-
-
-<ul>
-<li>幂等失败提示信息，可自定义</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">String info() default &quot;重复请求，请稍后重试&quot;;</span><br></pre></td></tr></table></figure>
-
-
-
-<ul>
-<li>是否在业务完成后删除key true:删除 false:不删除</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">boolean delKey() default false;</span><br></pre></td></tr></table></figure>
-
-<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>1.请求开始前，根据key查询 查到结果：报错 | 未查到结果：存入key-value-expireTime</p>
-<p>2.请求结束后，直接删除key ，不管key是否存在，直接删除 是否删除，可配置</p>
-<p>3.expireTime过期时间，防止一个请求卡死，会一直阻塞，超过过期时间，自动删除</p>
-<p>过期时间要大于业务执行时间，需要大概评估下;</p>
-<p>4.此方案直接切的是接口请求层面。</p>
-<p>5.过期时间需要大于业务执行时间，否则业务请求1进来还在执行中，前端未做遮罩，或者用户跳转页面后再回来做重复请求2，在业务层面上看，结果依旧是不符合预期的。</p>
-<p>6.建议delKey = false。即使业务执行完，也不删除key，强制锁expireTime的时间。预防5的情况发生。</p>
-<p>7.实现思路：同一个请求ip和接口，相同参数的请求，在expireTime内多次请求，只允许成功一次。</p>
-<p>8.页面做遮罩，数据库层面的唯一索引，先查询再添加，等处理方式应该都处理下。</p>
-<p>9.此注解只用于幂等，不用于锁，100个并发这种压测，会出现问题，在这种场景下也没有意义，实际中用户也不会出现1s或者3s内手动发送了50个或者100个重复请求,或者弱网下有100个重复请求；</p>
-]]></content>
-      <categories>
-        <category>分布式/微服务</category>
-      </categories>
-  </entry>
-  <entry>
     <title>Redis 分布式锁</title>
     <url>/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/</url>
     <content><![CDATA[<h1 id="Redis-分布式锁"><a href="#Redis-分布式锁" class="headerlink" title="Redis 分布式锁"></a>Redis 分布式锁</h1><h1 id="spring-boot-klock-starter"><a href="#spring-boot-klock-starter" class="headerlink" title="spring-boot-klock-starter"></a>spring-boot-klock-starter</h1><p>基于redis的分布式锁spring-boot starter组件，使得项目拥有分布式锁能力变得异常简单，支持spring boot，和spirng mvc等spring相关项目</p>
@@ -138,6 +56,88 @@
 </li>
 </ul>
 <p><strong>希望使用者清楚的意识到，如果没有对加锁超时进行有效的设置，那么设置释放锁时超时处理策略是没有意义的。</strong></p>
+]]></content>
+      <categories>
+        <category>分布式/微服务</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Redisson实现业务接口幂等</title>
+    <url>/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/</url>
+    <content><![CDATA[<h1 id="Redisson-实现业务接口幂等"><a href="#Redisson-实现业务接口幂等" class="headerlink" title="Redisson 实现业务接口幂等"></a>Redisson 实现业务接口幂等</h1><h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><ul>
+<li><ol>
+<li>引入依赖</li>
+</ol>
+</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.pig4cloud.plugin&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;idempotent-spring-boot-starter&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;0.0.4&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<ul>
+<li><ol start="2">
+<li>配置 redis 链接相关信息</li>
+</ol>
+</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line">  cache:</span><br><span class="line">    type: redis</span><br><span class="line">  redis:</span><br><span class="line">    host: 127.0.0.1</span><br><span class="line">    port: 6379</span><br></pre></td></tr></table></figure>
+
+
+
+<p>理论是支持 <a href="https://github.com/redisson/redisson/tree/master/redisson-spring-boot-starter">redisson-spring-boot-starter</a> 全部配置</p>
+<ul>
+<li><ol start="3">
+<li>接口设置注解</li>
+</ol>
+</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Idempotent(key = &quot;#demo.username&quot;, expireTime = 3, info = &quot;请勿重复查询&quot;)</span><br><span class="line">@GetMapping(&quot;/test&quot;)</span><br><span class="line">public String test(Demo demo) &#123;</span><br><span class="line">    return &quot;success&quot;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="idempotent-注解-配置详细说明"><a href="#idempotent-注解-配置详细说明" class="headerlink" title="idempotent 注解 配置详细说明"></a>idempotent 注解 配置详细说明</h2><ul>
+<li>幂等操作的唯一标识，使用spring el表达式 用#来引用方法参数 。 可为空则取 当前 url + args 做表示</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">String key();</span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li>有效期 默认：1 有效期要大于程序执行时间，否则请求还是可能会进来</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">int expireTime() default 1;</span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li>时间单位 默认：s （秒）</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">TimeUnit timeUnit() default TimeUnit.SECONDS;</span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li>幂等失败提示信息，可自定义</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">String info() default &quot;重复请求，请稍后重试&quot;;</span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li>是否在业务完成后删除key true:删除 false:不删除</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">boolean delKey() default false;</span><br></pre></td></tr></table></figure>
+
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>1.请求开始前，根据key查询 查到结果：报错 | 未查到结果：存入key-value-expireTime</p>
+<p>2.请求结束后，直接删除key ，不管key是否存在，直接删除 是否删除，可配置</p>
+<p>3.expireTime过期时间，防止一个请求卡死，会一直阻塞，超过过期时间，自动删除</p>
+<p>过期时间要大于业务执行时间，需要大概评估下;</p>
+<p>4.此方案直接切的是接口请求层面。</p>
+<p>5.过期时间需要大于业务执行时间，否则业务请求1进来还在执行中，前端未做遮罩，或者用户跳转页面后再回来做重复请求2，在业务层面上看，结果依旧是不符合预期的。</p>
+<p>6.建议delKey = false。即使业务执行完，也不删除key，强制锁expireTime的时间。预防5的情况发生。</p>
+<p>7.实现思路：同一个请求ip和接口，相同参数的请求，在expireTime内多次请求，只允许成功一次。</p>
+<p>8.页面做遮罩，数据库层面的唯一索引，先查询再添加，等处理方式应该都处理下。</p>
+<p>9.此注解只用于幂等，不用于锁，100个并发这种压测，会出现问题，在这种场景下也没有意义，实际中用户也不会出现1s或者3s内手动发送了50个或者100个重复请求,或者弱网下有100个重复请求；</p>
 ]]></content>
       <categories>
         <category>分布式/微服务</category>
@@ -269,13 +269,13 @@
 <p>如果对象在 Eden 出生并经过第一次 Minor GC 后仍然能够存活，并且能被 Survivor 容纳的话，将被移动到 Survivor 空间中，并将对象年龄设为 1.对象在 Survivor 中每熬过一次 MinorGC,年龄就增加 1 岁，当它的年龄增加到一定程度（默认为 15 岁），就会被晋升到老年代中。对象晋升到老年代的年龄阈值，可以通过参数 <code>-XX:MaxTenuringThreshold</code> 来设置。</p>
 <h3 id="1-4-动态对象年龄判定"><a href="#1-4-动态对象年龄判定" class="headerlink" title="1.4 动态对象年龄判定"></a><span class="exturl" data-url="aHR0cHM6Ly9zbmFpbGNsaW1iLmdpdGVlLmlvL2phdmFndWlkZS8jL2RvY3MvamF2YS9qdm0vSlZNJUU1JTlFJTgzJUU1JTlDJUJFJUU1JTlCJTlFJUU2JTk0JUI2P2lkPV8xNC0lRTUlOEElQTglRTYlODAlODElRTUlQUYlQjklRTglQjElQTElRTUlQjklQjQlRTklQkUlODQlRTUlODglQTQlRTUlQUUlOUE=">1.4 动态对象年龄判定<i class="fa fa-external-link-alt"></i></span></h3><p>大部分情况，对象都会首先在 Eden 区域分配，在一次新生代垃圾回收后，如果对象还存活，则会进入 s0 或者 s1，并且对象的年龄还会加 1(Eden 区-&gt;Survivor 区后对象的初始年龄变为 1)，当它的年龄增加到一定程度（默认为 15 岁），就会被晋升到老年代中。对象晋升到老年代的年龄阈值，可以通过参数 <code>-XX:MaxTenuringThreshold</code> 来设置。</p>
 <blockquote>
-<p>修正（<span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL1NuYWlsY2xpbWIvSmF2YUd1aWRlL2lzc3Vlcy81NTI=">issue552<i class="fa fa-external-link-alt"></i></span>）：“Hotspot 遍历所有对象时，按照年龄从小到大对其所占用的大小进行累积，当累积的某个年龄大小超过了 survivor 区的 50% 时（默认值是 50%，可以通过 <code>-XX:TargetSurvivorRatio=percent</code> 来设置，参见 <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL1NuYWlsY2xpbWIvSmF2YUd1aWRlL2lzc3Vlcy8xMTk5">issue1199<i class="fa fa-external-link-alt"></i></span> ），取这个年龄和 MaxTenuringThreshold 中更小的一个值，作为新的晋升年龄阈值”。</p>
+<p>修正（<a href="https://github.com/Snailclimb/JavaGuide/issues/552">issue552</a>）：“Hotspot 遍历所有对象时，按照年龄从小到大对其所占用的大小进行累积，当累积的某个年龄大小超过了 survivor 区的 50% 时（默认值是 50%，可以通过 <code>-XX:TargetSurvivorRatio=percent</code> 来设置，参见 <a href="https://github.com/Snailclimb/JavaGuide/issues/1199">issue1199</a> ），取这个年龄和 MaxTenuringThreshold 中更小的一个值，作为新的晋升年龄阈值”。</p>
 <p>jdk8官方文档引用 ：<span class="exturl" data-url="aHR0cHM6Ly9kb2NzLm9yYWNsZS5jb20vamF2YXNlLzgvZG9jcy90ZWNobm90ZXMvdG9vbHMvdW5peC9qYXZhLmh0bWw=">https://docs.oracle.com/javase/8/docs/technotes/tools/unix/java.html<i class="fa fa-external-link-alt"></i></span> 。</p>
 <p><img src="/images/JVM/image-20210523201742303.png" alt="img"></p>
 <p><strong>动态年龄计算的代码如下：</strong></p>
 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="function">uint <span class="title">ageTable::compute_tenuring_threshold</span><span class="params">(<span class="keyword">size_t</span> survivor_capacity)</span> </span>&#123;</span><br><span class="line"> <span class="comment">//survivor_capacity是survivor空间的大小</span></span><br><span class="line"> <span class="keyword">size_t</span> desired_survivor_size = (<span class="keyword">size_t</span>)((((<span class="keyword">double</span>)survivor_capacity)*TargetSurvivorRatio)/<span class="number">100</span>);</span><br><span class="line"> <span class="keyword">size_t</span> total = <span class="number">0</span>;</span><br><span class="line"> uint age = <span class="number">1</span>;</span><br><span class="line"> <span class="keyword">while</span> (age &lt; table_size) &#123;</span><br><span class="line">     <span class="comment">//sizes数组是每个年龄段对象大小</span></span><br><span class="line">     total += sizes[age];</span><br><span class="line">     <span class="keyword">if</span> (total &gt; desired_survivor_size) &#123;</span><br><span class="line">         <span class="keyword">break</span>;</span><br><span class="line">     &#125;</span><br><span class="line">     age++;</span><br><span class="line"> &#125;</span><br><span class="line"> uint result = age &lt; MaxTenuringThreshold ? age : MaxTenuringThreshold;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br><span class="line">Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
 
-<p>额外补充说明(<span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL1NuYWlsY2xpbWIvSmF2YUd1aWRlL2lzc3Vlcy82NzI=">issue672<i class="fa fa-external-link-alt"></i></span>)：<strong>关于默认的晋升年龄是 15，这个说法的来源大部分都是《深入理解 Java 虚拟机》这本书。</strong> 如果你去 Oracle 的官网阅读<span class="exturl" data-url="aHR0cHM6Ly9kb2NzLm9yYWNsZS5jb20vamF2YXNlLzgvZG9jcy90ZWNobm90ZXMvdG9vbHMvdW5peC9qYXZhLmh0bWw=">相关的虚拟机参数<i class="fa fa-external-link-alt"></i></span>，你会发现<code>-XX:MaxTenuringThreshold=threshold</code>这里有个说明</p>
+<p>额外补充说明(<a href="https://github.com/Snailclimb/JavaGuide/issues/672">issue672</a>)：<strong>关于默认的晋升年龄是 15，这个说法的来源大部分都是《深入理解 Java 虚拟机》这本书。</strong> 如果你去 Oracle 的官网阅读<span class="exturl" data-url="aHR0cHM6Ly9kb2NzLm9yYWNsZS5jb20vamF2YXNlLzgvZG9jcy90ZWNobm90ZXMvdG9vbHMvdW5peC9qYXZhLmh0bWw=">相关的虚拟机参数<i class="fa fa-external-link-alt"></i></span>，你会发现<code>-XX:MaxTenuringThreshold=threshold</code>这里有个说明</p>
 <p><strong>Sets the maximum tenuring threshold for use in adaptive GC sizing. The largest value is 15. The default value is 15 for the parallel (throughput) collector, and 6 for the CMS collector.默认晋升年龄并不都是 15，这个是要区分垃圾收集器的，CMS 就是 6.</strong></p>
 </blockquote>
 <h3 id="1-5-主要进行-gc-的区域"><a href="#1-5-主要进行-gc-的区域" class="headerlink" title="1.5 主要进行 gc 的区域"></a><span class="exturl" data-url="aHR0cHM6Ly9zbmFpbGNsaW1iLmdpdGVlLmlvL2phdmFndWlkZS8jL2RvY3MvamF2YS9qdm0vSlZNJUU1JTlFJTgzJUU1JTlDJUJFJUU1JTlCJTlFJUU2JTk0JUI2P2lkPV8xNS0lRTQlQjglQkIlRTglQTYlODElRTglQkYlOUIlRTglQTElOEMtZ2MtJUU3JTlBJTg0JUU1JThDJUJBJUU1JTlGJTlG">1.5 主要进行 gc 的区域<i class="fa fa-external-link-alt"></i></span></h3><p>周志明先生在《深入理解 Java 虚拟机》第二版中 P92 如是写道：</p>
