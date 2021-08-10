@@ -1,67 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Redis 分布式锁</title>
-    <url>/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/</url>
-    <content><![CDATA[<h1 id="Redis-分布式锁"><a href="#Redis-分布式锁" class="headerlink" title="Redis 分布式锁"></a>Redis 分布式锁</h1><h1 id="spring-boot-klock-starter"><a href="#spring-boot-klock-starter" class="headerlink" title="spring-boot-klock-starter"></a>spring-boot-klock-starter</h1><p>基于redis的分布式锁spring-boot starter组件，使得项目拥有分布式锁能力变得异常简单，支持spring boot，和spirng mvc等spring相关项目</p>
-<span id="more"></span>
-
-<h1 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h1><p>spring boot项目接入</p>
-<p>1.添加lock starter组件依赖，已上传到maven中央仓库</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;cn.keking&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-klock-starter&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;1.4-RELEASE&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>2.application.properties配置redis链接：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line">	klock:</span><br><span class="line">		address: 127.0.0.1:6379</span><br></pre></td></tr></table></figure>
-
-<p>3.在需要加分布式锁的方法上，添加注解@Klock，如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Service</span><br><span class="line">public class TestService &#123;</span><br><span class="line"></span><br><span class="line">    @Klock(waitTime = Long.MAX_VALUE)</span><br><span class="line">    public String getValue(String param) throws Exception &#123;</span><br><span class="line">        if (&quot;sleep&quot;.equals(param)) &#123;//线程休眠或者断点阻塞，达到一直占用锁的测试效果</span><br><span class="line">            Thread.sleep(1000 * 50);</span><br><span class="line">        &#125;</span><br><span class="line">        return &quot;success&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<ol>
-<li>支持锁指定的业务key，如同一个方法ID入参相同的加锁，其他的放行。业务key的获取支持Spel，具体使用方式如下<br><img src="/images/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/100452_e5d61dc8_492218.png" alt="img"></li>
-</ol>
-<h1 id="使用参数说明"><a href="#使用参数说明" class="headerlink" title="使用参数说明"></a>使用参数说明</h1><p><strong>配置参数说明</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring.klock.address  : redis链接地址</span><br><span class="line">spring.klock.password : redis密码</span><br><span class="line">spring.klock.database : redis数据索引</span><br><span class="line">spring.klock.waitTime : 获取锁最长阻塞时间（默认：60，单位：秒）</span><br><span class="line">spring.klock.leaseTime: 已获取锁后自动释放时间（默认：60，单位：秒）</span><br><span class="line">spring.klock.cluster-server.node-addresses : redis集群配置 如 127.0.0.1:7000,127.0.0.1:7001，127.0.0.1:7002</span><br><span class="line">spring.klock.address 和 spring.klock.cluster-server.node-addresses 选其一即可</span><br></pre></td></tr></table></figure>
-
-
-
-<p><strong>@Klock注解参数说明</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Klock可以标注四个参数，作用分别如下</span><br><span class="line"></span><br><span class="line">name：lock的name，对应redis的key值。默认为：类名+方法名</span><br><span class="line"></span><br><span class="line">lockType：锁的类型，目前支持（可重入锁，公平锁，读写锁）。默认为：公平锁</span><br><span class="line"></span><br><span class="line">waitTime：获取锁最长等待时间。默认为：60s。同时也可通过spring.klock.waitTime统一配置</span><br><span class="line"></span><br><span class="line">leaseTime：获得锁后，自动释放锁的时间。默认为：60s。同时也可通过spring.klock.leaseTime统一配置</span><br><span class="line"></span><br><span class="line">lockTimeoutStrategy: 加锁超时的处理策略，可配置为不做处理、快速失败、阻塞等待的处理策略，默认策略为不做处理</span><br><span class="line"></span><br><span class="line">customLockTimeoutStrategy: 自定义加锁超时的处理策略，需指定自定义处理的方法的方法名，并保持入参一致。</span><br><span class="line"></span><br><span class="line">releaseTimeoutStrategy: 释放锁时，持有的锁已超时的处理策略，可配置为不做处理、快速失败的处理策略，默认策略为不做处理</span><br><span class="line"></span><br><span class="line">customReleaseTimeoutStrategy: 自定义释放锁时，需指定自定义处理的方法的方法名，并保持入参一致。</span><br></pre></td></tr></table></figure>
-
-
-
-<h1 id="锁超时说明"><a href="#锁超时说明" class="headerlink" title="锁超时说明"></a>锁超时说明</h1><p>因为基于redis实现分布式锁，如果使用不当，会在以下场景下遇到锁超时的问题：</p>
-<p><img src="/images/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/7dfa0a7bly1g24obim6cnj20u80jzgnf.jpg" alt="img"></p>
-<p>加锁超时处理策略(<strong>LockTimeoutStrategy</strong>)：</p>
-<ul>
-<li><p><strong>NO_OPERATION</strong> 不做处理，继续执行业务逻辑</p>
-</li>
-<li><p><strong>FAIL_FAST</strong> 快速失败，会抛出KlockTimeoutException</p>
-</li>
-<li><p><strong>KEEP_ACQUIRE</strong> 阻塞等待，一直阻塞，直到获得锁，但在太多的尝试后，会停止获取锁并报错，此时很有可能是发生了死锁。</p>
-</li>
-<li><p><strong>自定义(customLockTimeoutStrategy)</strong> 需指定自定义处理的方法的方法名，并保持入参一致，指定自定义处理方法后，会覆盖上述三种策略，且会拦截业务逻辑的运行。</p>
-</li>
-</ul>
-<p>释放锁时超时处理策略(<strong>ReleaseTimeoutStrategy</strong>)：</p>
-<ul>
-<li><p><strong>NO_OPERATION</strong> 不做处理，继续执行业务逻辑</p>
-</li>
-<li><p><strong>FAIL_FAST</strong> 快速失败，会抛出KlockTimeoutException</p>
-</li>
-<li><p><strong>自定义(customReleaseTimeoutStrategy)</strong> 需指定自定义处理的方法的方法名，并保持入参一致，指定自定义处理方法后，会覆盖上述两种策略, 执行自定义处理方法时，业务逻辑已经执行完毕，会在方法返回前和throw异常前执行。</p>
-</li>
-</ul>
-<p><strong>希望使用者清楚的意识到，如果没有对加锁超时进行有效的设置，那么设置释放锁时超时处理策略是没有意义的。</strong></p>
-]]></content>
-      <categories>
-        <category>分布式/微服务</category>
-      </categories>
-  </entry>
-  <entry>
     <title>Redisson实现业务接口幂等</title>
     <url>/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/</url>
     <content><![CDATA[<h1 id="Redisson-实现业务接口幂等"><a href="#Redisson-实现业务接口幂等" class="headerlink" title="Redisson 实现业务接口幂等"></a>Redisson 实现业务接口幂等</h1><h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><ul>
@@ -138,6 +77,67 @@
 <p>7.实现思路：同一个请求ip和接口，相同参数的请求，在expireTime内多次请求，只允许成功一次。</p>
 <p>8.页面做遮罩，数据库层面的唯一索引，先查询再添加，等处理方式应该都处理下。</p>
 <p>9.此注解只用于幂等，不用于锁，100个并发这种压测，会出现问题，在这种场景下也没有意义，实际中用户也不会出现1s或者3s内手动发送了50个或者100个重复请求,或者弱网下有100个重复请求；</p>
+]]></content>
+      <categories>
+        <category>分布式/微服务</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Redis 分布式锁</title>
+    <url>/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/</url>
+    <content><![CDATA[<h1 id="Redis-分布式锁"><a href="#Redis-分布式锁" class="headerlink" title="Redis 分布式锁"></a>Redis 分布式锁</h1><h1 id="spring-boot-klock-starter"><a href="#spring-boot-klock-starter" class="headerlink" title="spring-boot-klock-starter"></a>spring-boot-klock-starter</h1><p>基于redis的分布式锁spring-boot starter组件，使得项目拥有分布式锁能力变得异常简单，支持spring boot，和spirng mvc等spring相关项目</p>
+<span id="more"></span>
+
+<h1 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h1><p>spring boot项目接入</p>
+<p>1.添加lock starter组件依赖，已上传到maven中央仓库</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;cn.keking&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-klock-starter&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;1.4-RELEASE&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>2.application.properties配置redis链接：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line">	klock:</span><br><span class="line">		address: 127.0.0.1:6379</span><br></pre></td></tr></table></figure>
+
+<p>3.在需要加分布式锁的方法上，添加注解@Klock，如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Service</span><br><span class="line">public class TestService &#123;</span><br><span class="line"></span><br><span class="line">    @Klock(waitTime = Long.MAX_VALUE)</span><br><span class="line">    public String getValue(String param) throws Exception &#123;</span><br><span class="line">        if (&quot;sleep&quot;.equals(param)) &#123;//线程休眠或者断点阻塞，达到一直占用锁的测试效果</span><br><span class="line">            Thread.sleep(1000 * 50);</span><br><span class="line">        &#125;</span><br><span class="line">        return &quot;success&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<ol>
+<li>支持锁指定的业务key，如同一个方法ID入参相同的加锁，其他的放行。业务key的获取支持Spel，具体使用方式如下<br><img src="/images/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/100452_e5d61dc8_492218.png" alt="img"></li>
+</ol>
+<h1 id="使用参数说明"><a href="#使用参数说明" class="headerlink" title="使用参数说明"></a>使用参数说明</h1><p><strong>配置参数说明</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring.klock.address  : redis链接地址</span><br><span class="line">spring.klock.password : redis密码</span><br><span class="line">spring.klock.database : redis数据索引</span><br><span class="line">spring.klock.waitTime : 获取锁最长阻塞时间（默认：60，单位：秒）</span><br><span class="line">spring.klock.leaseTime: 已获取锁后自动释放时间（默认：60，单位：秒）</span><br><span class="line">spring.klock.cluster-server.node-addresses : redis集群配置 如 127.0.0.1:7000,127.0.0.1:7001，127.0.0.1:7002</span><br><span class="line">spring.klock.address 和 spring.klock.cluster-server.node-addresses 选其一即可</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>@Klock注解参数说明</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Klock可以标注四个参数，作用分别如下</span><br><span class="line"></span><br><span class="line">name：lock的name，对应redis的key值。默认为：类名+方法名</span><br><span class="line"></span><br><span class="line">lockType：锁的类型，目前支持（可重入锁，公平锁，读写锁）。默认为：公平锁</span><br><span class="line"></span><br><span class="line">waitTime：获取锁最长等待时间。默认为：60s。同时也可通过spring.klock.waitTime统一配置</span><br><span class="line"></span><br><span class="line">leaseTime：获得锁后，自动释放锁的时间。默认为：60s。同时也可通过spring.klock.leaseTime统一配置</span><br><span class="line"></span><br><span class="line">lockTimeoutStrategy: 加锁超时的处理策略，可配置为不做处理、快速失败、阻塞等待的处理策略，默认策略为不做处理</span><br><span class="line"></span><br><span class="line">customLockTimeoutStrategy: 自定义加锁超时的处理策略，需指定自定义处理的方法的方法名，并保持入参一致。</span><br><span class="line"></span><br><span class="line">releaseTimeoutStrategy: 释放锁时，持有的锁已超时的处理策略，可配置为不做处理、快速失败的处理策略，默认策略为不做处理</span><br><span class="line"></span><br><span class="line">customReleaseTimeoutStrategy: 自定义释放锁时，需指定自定义处理的方法的方法名，并保持入参一致。</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="锁超时说明"><a href="#锁超时说明" class="headerlink" title="锁超时说明"></a>锁超时说明</h1><p>因为基于redis实现分布式锁，如果使用不当，会在以下场景下遇到锁超时的问题：</p>
+<p><img src="/images/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/7dfa0a7bly1g24obim6cnj20u80jzgnf.jpg" alt="img"></p>
+<p>加锁超时处理策略(<strong>LockTimeoutStrategy</strong>)：</p>
+<ul>
+<li><p><strong>NO_OPERATION</strong> 不做处理，继续执行业务逻辑</p>
+</li>
+<li><p><strong>FAIL_FAST</strong> 快速失败，会抛出KlockTimeoutException</p>
+</li>
+<li><p><strong>KEEP_ACQUIRE</strong> 阻塞等待，一直阻塞，直到获得锁，但在太多的尝试后，会停止获取锁并报错，此时很有可能是发生了死锁。</p>
+</li>
+<li><p><strong>自定义(customLockTimeoutStrategy)</strong> 需指定自定义处理的方法的方法名，并保持入参一致，指定自定义处理方法后，会覆盖上述三种策略，且会拦截业务逻辑的运行。</p>
+</li>
+</ul>
+<p>释放锁时超时处理策略(<strong>ReleaseTimeoutStrategy</strong>)：</p>
+<ul>
+<li><p><strong>NO_OPERATION</strong> 不做处理，继续执行业务逻辑</p>
+</li>
+<li><p><strong>FAIL_FAST</strong> 快速失败，会抛出KlockTimeoutException</p>
+</li>
+<li><p><strong>自定义(customReleaseTimeoutStrategy)</strong> 需指定自定义处理的方法的方法名，并保持入参一致，指定自定义处理方法后，会覆盖上述两种策略, 执行自定义处理方法时，业务逻辑已经执行完毕，会在方法返回前和throw异常前执行。</p>
+</li>
+</ul>
+<p><strong>希望使用者清楚的意识到，如果没有对加锁超时进行有效的设置，那么设置释放锁时超时处理策略是没有意义的。</strong></p>
 ]]></content>
       <categories>
         <category>分布式/微服务</category>
