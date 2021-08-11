@@ -210,7 +210,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2021-08-11 16:01:25 / 修改时间：16:05:05" itemprop="dateCreated datePublished" datetime="2021-08-11T16:01:25+08:00">2021-08-11</time>
+              <time title="创建时间：2021-08-11 16:01:25 / 修改时间：16:06:44" itemprop="dateCreated datePublished" datetime="2021-08-11T16:01:25+08:00">2021-08-11</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -255,140 +255,15 @@
 
       
           <h1 id="Nginx如何支持HTTPS"><a href="#Nginx如何支持HTTPS" class="headerlink" title="Nginx如何支持HTTPS"></a>Nginx如何支持HTTPS</h1><blockquote>
-<p>随着我们网站用户的增多，我们会逐渐意识到HTTPS加密的重要性。在不修改现有代码的情况下，要从HTTP升级到HTTPS，让Nginx支持HTTPS是个很好的选择。今天我们来讲下如何从Nginx入手，从HTTP升级到HTTPS，同时支持静态网站和SpringBoot应用，希望对大家有所帮助！</p>
-</blockquote>
-<h2 id="生成SSL自签名证书"><a href="#生成SSL自签名证书" class="headerlink" title="生成SSL自签名证书"></a>生成SSL自签名证书</h2><blockquote>
-<p>虽然自签名证书浏览器认为并不是安全的，但是学习下SSL证书的生成还是很有必要的！</p>
-</blockquote>
-<ul>
-<li>首先创建SSL证书私钥，期间需要输入两次用户名和密码，生成文件为<code>blog.key</code>；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -des3 -out blog.key 2048Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>利用私钥生成一个不需要输入密码的密钥文件，生成文件为<code>blog_nopass.key</code>；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl rsa -<span class="keyword">in</span> blog.key -out blog_nopass.keyCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>创建SSL证书签名请求文件，生成SSL证书时需要使用到，生成文件为<code>blog.csr</code>；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl req -new -key blog.key -out blog.csrCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>在生成过程中，我们需要输入一些信息，需要注意的是<code>Common Name</code>需要和网站域名一致；</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Enter pass phrase for blog.key:</span><br><span class="line">-----</span><br><span class="line">Country Name (2 letter code) [XX]:CN                                         # 国家代码</span><br><span class="line">State or Province Name (full name) []:jiangsu                                # 省份</span><br><span class="line">Locality Name (eg, city) [Default City]:jiangsu                              # 城市</span><br><span class="line">Organization Name (eg, company) [Default Company Ltd]:macrozheng             # 机构名称</span><br><span class="line">Organizational Unit Name (eg, section) []:dev                                # 单位名称</span><br><span class="line">Common Name (eg, your name or your server&#x27;s hostname) []:blog.macrozheng.com # 网站域名</span><br><span class="line">Email Address []:macrozheng@qq.com                                           # 邮箱</span><br><span class="line"></span><br><span class="line">Please enter the following &#x27;extra&#x27; attributes</span><br><span class="line">to be sent with your certificate request</span><br><span class="line">A challenge password []:                                                     # 私钥保护密码,可以不输入直接回车</span><br><span class="line">An optional company name []:                                                 # 可选公司名称，可以不输入直接回车Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>生成SSL证书，有效期为365天，生成文件为<code>blog.crt</code>；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 -req -days 365 -<span class="keyword">in</span> blog.csr -signkey blog.key -out blog.crtCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>其实最终有用的文件是两个，一个是证书文件<code>blog.crt</code>，另一个是不需要输入密码的证书私钥文件<code>blog_nopass.key</code>。</li>
-</ul>
-<h2 id="Nginx支持HTTPS"><a href="#Nginx支持HTTPS" class="headerlink" title="Nginx支持HTTPS"></a>Nginx支持HTTPS</h2><blockquote>
-<p>SSL证书生成好了，接下来我们就可以配置Nginx来支持HTTPS了！</p>
-</blockquote>
-<h3 id="安装Nginx"><a href="#安装Nginx" class="headerlink" title="安装Nginx"></a>安装Nginx</h3><ul>
-<li>我们还是使用在Docker容器中安装Nginx的方式，先下载Nginx的Docker镜像；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull nginx:1.10Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>下载完成后先运行一次Nginx，由于之后我们要把宿主机的Nginx配置文件映射到Docker容器中去，运行一次方便我们拷贝默认配置；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker run -p 80:80 --name nginx \</span><br><span class="line">-v /mydata/nginx/html:/usr/share/nginx/html \</span><br><span class="line">-v /mydata/nginx/logs:/var/<span class="built_in">log</span>/nginx  \</span><br><span class="line">-d nginx:1.10Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>运行成功后将容器中的Nginx配置目录拷贝到宿主机上去；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker container cp nginx:/etc/nginx /mydata/nginx/Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>将宿主机上的<code>nginx</code>目录改名为<code>conf</code>，要不然<code>/mydata/nginx/nginx</code>这个配置文件目录看着有点别扭；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mv /mydata/nginx/nginx /mydata/nginx/confCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>创建的Nginx容器复制完配置后就没用了，停止并删除容器；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker stop nginx</span><br><span class="line">docker rm nginxCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>使用Docker命令重新启动Nginx服务，需要映射好配置文件，由于我们要支持HTTPS，还需要开放<code>443</code>端口。</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">docker run -p 80:80 -p 443:443 --name nginx \</span><br><span class="line">-v /mydata/nginx/html:/usr/share/nginx/html \</span><br><span class="line">-v /mydata/nginx/logs:/var/<span class="built_in">log</span>/nginx  \</span><br><span class="line">-v /mydata/nginx/conf:/etc/nginx \</span><br><span class="line">-d nginx:1.10Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<h3 id="配置支持HTTPS"><a href="#配置支持HTTPS" class="headerlink" title="配置支持HTTPS"></a>配置支持HTTPS</h3><ul>
-<li>将我们生成好的SSL证书和私钥拷贝到Nginx的<code>html/ssl</code>目录下；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp blog_nopass.key /mydata/nginx/html/ssl/</span><br><span class="line">cp blog.crt /mydata/nginx/html/ssl/Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>接下来我们需要给<code>blog.macrozheng.com</code>这个域名添加HTTPS支持，在<code>/mydata/nginx/conf/conf.d/</code>目录下添加Nginx配置文件<code>blog.conf</code>，配置文件内容如下；</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">    listen       80; # 同时支持HTTP</span><br><span class="line">    listen       443 ssl; # 添加HTTPS支持</span><br><span class="line">    server_name  blog.macrozheng.com;</span><br><span class="line"></span><br><span class="line">    #SSL配置</span><br><span class="line">    ssl_certificate      /usr/share/nginx/html/ssl/blog/blog.crt; # 配置证书</span><br><span class="line">    ssl_certificate_key  /usr/share/nginx/html/ssl/blog/blog_nopass.key; # 配置证书私钥</span><br><span class="line">    ssl_protocols        TLSv1 TLSv1.1 TLSv1.2; # 配置SSL协议版本</span><br><span class="line">    ssl_ciphers          ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE; # 配置SSL加密算法</span><br><span class="line">    ssl_prefer_server_ciphers  on; # 优先采取服务器算法</span><br><span class="line">    ssl_session_cache    shared:SSL:10m; # 配置共享会话缓存大小</span><br><span class="line">    ssl_session_timeout  10m; # 配置会话超时时间</span><br><span class="line"></span><br><span class="line">    location / &#123;</span><br><span class="line">        root   /usr/share/nginx/html/www;</span><br><span class="line">        index  index.html index.htm;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    location /admin &#123;</span><br><span class="line">        alias   /usr/share/nginx/html/admin;</span><br><span class="line">        index  index.html index.htm;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    location /app &#123;</span><br><span class="line">        alias   /usr/share/nginx/html/app;</span><br><span class="line">        index  index.html index.htm;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    error_page   500 502 503 504  /50x.html;</span><br><span class="line">    location = /50x.html &#123;</span><br><span class="line">        root   /usr/share/nginx/html;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>通过<code>HTTPS</code>访问<code>blog.macrozheng.com</code>这个域名，由于我们使用的是自己签名的SSL证书，浏览器会提示<code>您的连接不是私密连接</code>，点击继续前往可以通过HTTPS正常访问；</li>
-</ul>
-<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_01.png" alt="img"></p>
-<ul>
-<li>我们可以查看下证书的<code>颁发者</code>信息，可以发现正好是之前我们创建SSL证书签名请求文件时录入的信息；</li>
-</ul>
-<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_02.png" alt="img"></p>
-<ul>
-<li>接下来我们需要给<code>api.macrozheng.com</code>这个域名添加HTTPS支持，通过这个域名可以使用HTTPS访问我们的SpringBoot应用，<code>api.crt</code>和<code>api_nopass.key</code>文件需要自行生成，在<code>/mydata/nginx/conf/conf.d/</code>目录下添加Nginx配置文件<code>api.conf</code>，配置文件内容如下；</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">    listen       80; # 同时支持HTTP</span><br><span class="line">    listen       443 ssl; # 添加HTTPS支持</span><br><span class="line">    server_name  api.macrozheng.com; #修改域名</span><br><span class="line"></span><br><span class="line">    #ssl配置</span><br><span class="line">    ssl_certificate      /usr/share/nginx/html/ssl/api/api.crt; # 配置证书</span><br><span class="line">    ssl_certificate_key  /usr/share/nginx/html/ssl/api/api_nopass.key; # 配置证书私钥</span><br><span class="line">    ssl_protocols        TLSv1 TLSv1.1 TLSv1.2; # 配置SSL协议版本 # 配置SSL加密算法</span><br><span class="line">    ssl_ciphers          ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE;</span><br><span class="line">    ssl_prefer_server_ciphers  on; # 优先采取服务器算法</span><br><span class="line">    ssl_session_cache    shared:SSL:10m; # 配置共享会话缓存大小</span><br><span class="line">    ssl_session_timeout  10m; # 配置会话超时时间</span><br><span class="line"></span><br><span class="line">    location / &#123;</span><br><span class="line">        proxy_pass   http://192.168.3.101:8080; # 设置代理服务访问地址</span><br><span class="line">        proxy_set_header  Host $http_host; # 设置客户端真实的域名（包括端口号）</span><br><span class="line">        proxy_set_header  X-Real-IP  $remote_addr; # 设置客户端真实IP</span><br><span class="line">        proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for; # 设置在多层代理时会包含真实客户端及中间每个代理服务器的IP</span><br><span class="line">        proxy_set_header X-Forwarded-Proto $scheme; # 设置客户端真实的协议（http还是https）</span><br><span class="line">        index  index.html index.htm;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    error_page   500 502 503 504  /50x.html;</span><br><span class="line">    location = /50x.html &#123;</span><br><span class="line">        root   /usr/share/nginx/html;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>通过<code>HTTPS</code>访问<code>api.macrozheng.com</code>这个域名，访问地址为：<span class="exturl" data-url="aHR0cHM6Ly9hcGkubWFjcm96aGVuZy5jb20vc3dhZ2dlci11aS5odG1s">https://api.macrozheng.com/swagger-ui.html<i class="fa fa-external-link-alt"></i></span></li>
-</ul>
-<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_03.png" alt="img"></p>
-<ul>
-<li>任意调用一个接口测试下，比如说登录接口，可以发现已经可以通过HTTPS正常访问SpringBoot应用提供的接口。</li>
-</ul>
-<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_04.png" alt="img"></p>
-<h2 id="使用受信任的证书"><a href="#使用受信任的证书" class="headerlink" title="使用受信任的证书"></a>使用受信任的证书</h2><blockquote>
-<p>之前我们使用的是自签名的SSL证书，对于浏览器来说是无效的。使用权威机构颁发的SSL证书浏览器才会认为是有效的，这里给大家推荐两种申请免费SSL证书的方法，一种是从阿里云申请，另一种是从FreeSSL申请。</p>
-</blockquote>
-<h3 id="阿里云证书"><a href="#阿里云证书" class="headerlink" title="阿里云证书"></a>阿里云证书</h3><ul>
-<li>阿里云上可以申请的免费证书目前只有支持单个域名的DV级SSL证书。比如说你有<code>blog.macrozheng.com</code>和<code>api.macrozheng.com</code>两个二级域名需要使用HTTPS，就需要申请两个SSL证书。</li>
-</ul>
-<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_05.png" alt="img"></p>
-<ul>
-<li>申请成功后点击下载Nginx证书即可；</li>
-</ul>
-<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_06.png" alt="img"></p>
-<ul>
-<li>下载完成后解压会有下面两个文件；</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">blog.macrozheng.com.key <span class="comment"># 证书私钥文件</span></span><br><span class="line">blog.macrozheng.com.pem <span class="comment"># 证书文件Copy to clipboardErrorCopied</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>拷贝证书文件到Nginx的指定目录下，然后修改配置文件<code>blog.conf</code>，只要修改证书配置路径即可，修改完成后重启Nginx；</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">#SSL配置</span><br><span class="line">ssl_certificate      /usr/share/nginx/html/ssl/blog/blog.macrozheng.com.pem; # 配置证书</span><br><span class="line">ssl_certificate_key  /usr/share/nginx/html/ssl/blog/blog.macrozheng.com.key; # 配置证书私钥Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>再次通过HTTPS访问<code>blog.macrozheng.com</code>这个域名，发现证书已经有效了，连接也是安全的了。</li>
-</ul>
-<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_07.png" alt="img"></p>
-<h3 id="FreeSSL证书"><a href="#FreeSSL证书" class="headerlink" title="FreeSSL证书"></a>FreeSSL证书</h3><ul>
-<li>如果你有使用通配符域名的需求，可以上<code>FreeSSL</code>申请SSL证书，不过免费的有效期只有3个月，这就意味着你过3个月就要重新申请一次了。</li>
-</ul>
-<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_08.png" alt="img"></p>
-<ul>
-<li>附上官网地址：<span class="exturl" data-url="aHR0cHM6Ly9mcmVlc3NsLmNuLw==">https://freessl.cn/<i class="fa fa-external-link-alt"></i></span></li>
-</ul>
-<h3 id="使用acme-sh自动申请证书"><a href="#使用acme-sh自动申请证书" class="headerlink" title="使用acme.sh自动申请证书"></a>使用<code>acme.sh</code>自动申请证书</h3><ul>
-<li><code>acme.sh</code>脚本实现了<code>acme</code>协议, 可以从<code>letsencrypt</code>生成免费的证书。一般我们申请的证书有效期都是1年，过期就要重新申请了，使用<code>acme.sh</code>脚本可以实现到期自动申请，再也不用担心证书过期了！</li>
-</ul>
-<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_09.png" alt="img"></p>
-
+<p>随着我们网站用户的增多，我们会逐渐意识到HTTPS加密的重要性。在不修改现有代码的情况下，要从HTTP升级到HTTPS，让Nginx支持HTTPS是个很好的选择。今天我们来讲下如何从Nginx入手，从HTTP升级到HTTPS，同时支持静态网站和SpringBoot应用，希望对大家有所帮助！</p></blockquote>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2021/08/11/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 

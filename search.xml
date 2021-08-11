@@ -5,6 +5,7 @@
     <url>/2021/08/11/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/</url>
     <content><![CDATA[<h1 id="Nginx如何支持HTTPS"><a href="#Nginx如何支持HTTPS" class="headerlink" title="Nginx如何支持HTTPS"></a>Nginx如何支持HTTPS</h1><blockquote>
 <p>随着我们网站用户的增多，我们会逐渐意识到HTTPS加密的重要性。在不修改现有代码的情况下，要从HTTP升级到HTTPS，让Nginx支持HTTPS是个很好的选择。今天我们来讲下如何从Nginx入手，从HTTP升级到HTTPS，同时支持静态网站和SpringBoot应用，希望对大家有所帮助！</p>
+<span id="more"></span>
 </blockquote>
 <h2 id="生成SSL自签名证书"><a href="#生成SSL自签名证书" class="headerlink" title="生成SSL自签名证书"></a>生成SSL自签名证书</h2><blockquote>
 <p>虽然自签名证书浏览器认为并不是安全的，但是学习下SSL证书的生成还是很有必要的！</p>
