@@ -23,29 +23,43 @@
     var CONFIG = {"hostname":"github.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":true},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":{"disqus":{"text":"Load Disqus","order":-1}}},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="云记">
-<meta property="og:url" content="https://github.com/gaofee/gaofee.github.io.git/index.html">
+  <meta name="description" content="Nginx如何支持HTTPS 随着我们网站用户的增多，我们会逐渐意识到HTTPS加密的重要性。在不修改现有代码的情况下，要从HTTP升级到HTTPS，让Nginx支持HTTPS是个很好的选择。今天我们来讲下如何从Nginx入手，从HTTP升级到HTTPS，同时支持静态网站和SpringBoot应用，希望对大家有所帮助！  生成SSL自签名证书 虽然自签名证书浏览器认为并不是安全的，但是学习下SSL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Nginx如何支持HTTPS？">
+<meta property="og:url" content="https://github.com/gaofee/gaofee.github.io.git/2021/08/11/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/index.html">
 <meta property="og:site_name" content="云记">
+<meta property="og:description" content="Nginx如何支持HTTPS 随着我们网站用户的增多，我们会逐渐意识到HTTPS加密的重要性。在不修改现有代码的情况下，要从HTTP升级到HTTPS，让Nginx支持HTTPS是个很好的选择。今天我们来讲下如何从Nginx入手，从HTTP升级到HTTPS，同时支持静态网站和SpringBoot应用，希望对大家有所帮助！  生成SSL自签名证书 虽然自签名证书浏览器认为并不是安全的，但是学习下SSL">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_01.png">
+<meta property="og:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_02.png">
+<meta property="og:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_03.png">
+<meta property="og:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_04.png">
+<meta property="og:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_05.png">
+<meta property="og:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_06.png">
+<meta property="og:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_07.png">
+<meta property="og:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_08.png">
+<meta property="og:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_09.png">
+<meta property="article:published_time" content="2021-08-11T08:01:25.279Z">
+<meta property="article:modified_time" content="2021-08-11T08:05:05.328Z">
 <meta property="article:author" content="云记">
 <meta property="article:tag" content="Java,面试,offer,技术,微服务,分布式,中间件,数据库">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://github.com/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_01.png">
 
-<link rel="canonical" href="https://github.com/gaofee/gaofee.github.io.git/">
+<link rel="canonical" href="https://github.com/gaofee/gaofee.github.io.git/2021/08/11/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>云记 - 云记</title>
+  <title>Nginx如何支持HTTPS？ | 云记</title>
   
 
 
@@ -179,9 +193,10 @@
         <div class="content-wrap">
           
 
-          <div class="content index posts-expand">
+          <div class="content post posts-expand">
             
-      
+
+    
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
@@ -197,10 +212,9 @@
       <meta itemprop="name" content="云记">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/08/11/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/" class="post-title-link" itemprop="url">Nginx如何支持HTTPS？</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          Nginx如何支持HTTPS？
+        </h1>
 
         <div class="post-meta">
             <span class="post-meta-item">
@@ -254,7 +268,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="Nginx如何支持HTTPS"><a href="#Nginx如何支持HTTPS" class="headerlink" title="Nginx如何支持HTTPS"></a>Nginx如何支持HTTPS</h1><blockquote>
+        <h1 id="Nginx如何支持HTTPS"><a href="#Nginx如何支持HTTPS" class="headerlink" title="Nginx如何支持HTTPS"></a>Nginx如何支持HTTPS</h1><blockquote>
 <p>随着我们网站用户的增多，我们会逐渐意识到HTTPS加密的重要性。在不修改现有代码的情况下，要从HTTP升级到HTTPS，让Nginx支持HTTPS是个很好的选择。今天我们来讲下如何从Nginx入手，从HTTP升级到HTTPS，同时支持静态网站和SpringBoot应用，希望对大家有所帮助！</p>
 </blockquote>
 <h2 id="生成SSL自签名证书"><a href="#生成SSL自签名证书" class="headerlink" title="生成SSL自签名证书"></a>生成SSL自签名证书</h2><blockquote>
@@ -389,525 +403,62 @@
 </ul>
 <p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_09.png" alt="img"></p>
 
-      
     </div>
 
     
     
     
+        <div class="reward-container">
+  <div></div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    打赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechatpay.png" alt="云记 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.png" alt="云记 支付宝">
+        <p>支付宝</p>
+      </div>
+
+  </div>
+</div>
+
+
       <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://github.com/gaofee/gaofee.github.io.git/2021/08/10/RabbitMQ%E5%AE%9E%E7%8E%B0%E5%BB%B6%E8%BF%9F%E6%B6%88%E6%81%AF/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="云记">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="云记">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/08/10/RabbitMQ%E5%AE%9E%E7%8E%B0%E5%BB%B6%E8%BF%9F%E6%B6%88%E6%81%AF/" class="post-title-link" itemprop="url">RabbitMQ实现延迟消息</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2021-08-10 11:46:38 / 修改时间：11:49:38" itemprop="dateCreated datePublished" datetime="2021-08-10T11:46:38+08:00">2021-08-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">中间件</span></a>
-                </span>
-            </span>
-
-          
-            <span id="/2021/08/10/RabbitMQ%E5%AE%9E%E7%8E%B0%E5%BB%B6%E8%BF%9F%E6%B6%88%E6%81%AF/" class="post-meta-item leancloud_visitors" data-flag-title="RabbitMQ实现延迟消息" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2021/08/10/RabbitMQ%E5%AE%9E%E7%8E%B0%E5%BB%B6%E8%BF%9F%E6%B6%88%E6%81%AF/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2021/08/10/RabbitMQ%E5%AE%9E%E7%8E%B0%E5%BB%B6%E8%BF%9F%E6%B6%88%E6%81%AF/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="RabbitMQ实现延迟消息"><a href="#RabbitMQ实现延迟消息" class="headerlink" title="RabbitMQ实现延迟消息"></a>RabbitMQ实现延迟消息</h1><h2 id="项目使用框架介绍"><a href="#项目使用框架介绍" class="headerlink" title="项目使用框架介绍"></a>项目使用框架介绍</h2><h3 id="RabbitMQ"><a href="#RabbitMQ" class="headerlink" title="RabbitMQ"></a>RabbitMQ</h3><blockquote>
-<p>RabbitMQ是一个被广泛使用的开源消息队列。它是轻量级且易于部署的，它能支持多种消息协议。RabbitMQ可以部署在分布式和联合配置中，以满足高规模、高可用性的需求。</p>
-</blockquote>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2021/08/10/RabbitMQ%E5%AE%9E%E7%8E%B0%E5%BB%B6%E8%BF%9F%E6%B6%88%E6%81%AF/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
+  <div class="post-widgets">
+    <div class="wp_rating">
+      <div id="wpac-rating"></div>
     </div>
+  </div>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://github.com/gaofee/gaofee.github.io.git/2021/08/08/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="云记">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="云记">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/08/08/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/" class="post-title-link" itemprop="url">整合elk日志收集</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2021-08-08 19:13:30 / 修改时间：19:16:25" itemprop="dateCreated datePublished" datetime="2021-08-08T19:13:30+08:00">2021-08-08</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F-%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式/微服务</span></a>
-                </span>
-            </span>
-
-          
-            <span id="/2021/08/08/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/" class="post-meta-item leancloud_visitors" data-flag-title="整合elk日志收集" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2021/08/08/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2021/08/08/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="整合elk-日志收集"><a href="#整合elk-日志收集" class="headerlink" title="整合elk 日志收集"></a>整合elk 日志收集</h1><p>ELK即Elasticsearch、Logstash、Kibana,组合起来可以搭建线上日志系统，在目前这种分布式微服务系统中，通过ELK 会非常方便的查询和统计日志情况.</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2021/08/08/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/08/10/RabbitMQ%E5%AE%9E%E7%8E%B0%E5%BB%B6%E8%BF%9F%E6%B6%88%E6%81%AF/" rel="prev" title="RabbitMQ实现延迟消息">
+      <i class="fa fa-chevron-left"></i> RabbitMQ实现延迟消息
+    </a></div>
+      <div class="post-nav-item"></div>
     </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
       </footer>
+    
   </article>
   
   
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://github.com/gaofee/gaofee.github.io.git/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="云记">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="云记">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" class="post-title-link" itemprop="url">Redis 分布式锁</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2021-08-07 10:55:38 / 修改时间：16:09:25" itemprop="dateCreated datePublished" datetime="2021-08-07T10:55:38+08:00">2021-08-07</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F-%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式/微服务</span></a>
-                </span>
-            </span>
-
-          
-            <span id="/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" class="post-meta-item leancloud_visitors" data-flag-title="Redis 分布式锁" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Redis-分布式锁"><a href="#Redis-分布式锁" class="headerlink" title="Redis 分布式锁"></a>Redis 分布式锁</h1><h1 id="spring-boot-klock-starter"><a href="#spring-boot-klock-starter" class="headerlink" title="spring-boot-klock-starter"></a>spring-boot-klock-starter</h1><p>基于redis的分布式锁spring-boot starter组件，使得项目拥有分布式锁能力变得异常简单，支持spring boot，和spirng mvc等spring相关项目</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://github.com/gaofee/gaofee.github.io.git/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="云记">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="云记">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/" class="post-title-link" itemprop="url">Redisson实现业务接口幂等</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2021-08-07 10:53:08 / 修改时间：16:10:08" itemprop="dateCreated datePublished" datetime="2021-08-07T10:53:08+08:00">2021-08-07</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F-%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式/微服务</span></a>
-                </span>
-            </span>
-
-          
-            <span id="/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/" class="post-meta-item leancloud_visitors" data-flag-title="Redisson实现业务接口幂等" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Redisson-实现业务接口幂等"><a href="#Redisson-实现业务接口幂等" class="headerlink" title="Redisson 实现业务接口幂等"></a>Redisson 实现业务接口幂等</h1><h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><ul>
-<li><ol>
-<li>引入依赖</li>
-</ol>
-</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.pig4cloud.plugin&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;idempotent-spring-boot-starter&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;0.0.4&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://github.com/gaofee/gaofee.github.io.git/2021/08/05/JVM/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="云记">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="云记">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/08/05/JVM/" class="post-title-link" itemprop="url">JVM 垃圾回收</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2021-08-05 14:54:00" itemprop="dateCreated datePublished" datetime="2021-08-05T14:54:00+08:00">2021-08-05</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-08 11:16:18" itemprop="dateModified" datetime="2021-08-08T11:16:18+08:00">2021-08-08</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">Java基础</span></a>
-                </span>
-            </span>
-
-          
-            <span id="/2021/08/05/JVM/" class="post-meta-item leancloud_visitors" data-flag-title="JVM 垃圾回收" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2021/08/05/JVM/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2021/08/05/JVM/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h3 id="本节常见面试题"><a href="#本节常见面试题" class="headerlink" title="本节常见面试题"></a>本节常见面试题</h3><p>问题答案在文中都有提到</p>
-<ul>
-<li><p>如何判断对象是否死亡（两种方法）。</p>
-</li>
-<li><p>简单的介绍一下强引用、软引用、弱引用、虚引用（虚引用与软引用和弱引用的区别、使用软引用能带来的好处）。</p></li></ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2021/08/05/JVM/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-
   
 
 
 
           </div>
           
+    <div class="comments" id="valine-comments"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -954,6 +505,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS"><span class="nav-number">1.</span> <span class="nav-text">Nginx如何支持HTTPS</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%9F%E6%88%90SSL%E8%87%AA%E7%AD%BE%E5%90%8D%E8%AF%81%E4%B9%A6"><span class="nav-number">1.1.</span> <span class="nav-text">生成SSL自签名证书</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Nginx%E6%94%AF%E6%8C%81HTTPS"><span class="nav-number">1.2.</span> <span class="nav-text">Nginx支持HTTPS</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85Nginx"><span class="nav-number">1.2.1.</span> <span class="nav-text">安装Nginx</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%94%AF%E6%8C%81HTTPS"><span class="nav-number">1.2.2.</span> <span class="nav-text">配置支持HTTPS</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E5%8F%97%E4%BF%A1%E4%BB%BB%E7%9A%84%E8%AF%81%E4%B9%A6"><span class="nav-number">1.3.</span> <span class="nav-text">使用受信任的证书</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%98%BF%E9%87%8C%E4%BA%91%E8%AF%81%E4%B9%A6"><span class="nav-number">1.3.1.</span> <span class="nav-text">阿里云证书</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FreeSSL%E8%AF%81%E4%B9%A6"><span class="nav-number">1.3.2.</span> <span class="nav-text">FreeSSL证书</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8acme-sh%E8%87%AA%E5%8A%A8%E7%94%B3%E8%AF%B7%E8%AF%81%E4%B9%A6"><span class="nav-number">1.3.3.</span> <span class="nav-text">使用acme.sh自动申请证书</span></a></li></ol></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 

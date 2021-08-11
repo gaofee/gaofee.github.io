@@ -1,6 +1,148 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Nginx如何支持HTTPS？</title>
+    <url>/2021/08/11/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/</url>
+    <content><![CDATA[<h1 id="Nginx如何支持HTTPS"><a href="#Nginx如何支持HTTPS" class="headerlink" title="Nginx如何支持HTTPS"></a>Nginx如何支持HTTPS</h1><blockquote>
+<p>随着我们网站用户的增多，我们会逐渐意识到HTTPS加密的重要性。在不修改现有代码的情况下，要从HTTP升级到HTTPS，让Nginx支持HTTPS是个很好的选择。今天我们来讲下如何从Nginx入手，从HTTP升级到HTTPS，同时支持静态网站和SpringBoot应用，希望对大家有所帮助！</p>
+</blockquote>
+<h2 id="生成SSL自签名证书"><a href="#生成SSL自签名证书" class="headerlink" title="生成SSL自签名证书"></a>生成SSL自签名证书</h2><blockquote>
+<p>虽然自签名证书浏览器认为并不是安全的，但是学习下SSL证书的生成还是很有必要的！</p>
+</blockquote>
+<ul>
+<li>首先创建SSL证书私钥，期间需要输入两次用户名和密码，生成文件为<code>blog.key</code>；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">openssl genrsa -des3 -out blog.key 2048Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>利用私钥生成一个不需要输入密码的密钥文件，生成文件为<code>blog_nopass.key</code>；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">openssl rsa -<span class="keyword">in</span> blog.key -out blog_nopass.keyCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>创建SSL证书签名请求文件，生成SSL证书时需要使用到，生成文件为<code>blog.csr</code>；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">openssl req -new -key blog.key -out blog.csrCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>在生成过程中，我们需要输入一些信息，需要注意的是<code>Common Name</code>需要和网站域名一致；</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Enter pass phrase for blog.key:</span><br><span class="line">-----</span><br><span class="line">Country Name (2 letter code) [XX]:CN                                         # 国家代码</span><br><span class="line">State or Province Name (full name) []:jiangsu                                # 省份</span><br><span class="line">Locality Name (eg, city) [Default City]:jiangsu                              # 城市</span><br><span class="line">Organization Name (eg, company) [Default Company Ltd]:macrozheng             # 机构名称</span><br><span class="line">Organizational Unit Name (eg, section) []:dev                                # 单位名称</span><br><span class="line">Common Name (eg, your name or your server&#x27;s hostname) []:blog.macrozheng.com # 网站域名</span><br><span class="line">Email Address []:macrozheng@qq.com                                           # 邮箱</span><br><span class="line"></span><br><span class="line">Please enter the following &#x27;extra&#x27; attributes</span><br><span class="line">to be sent with your certificate request</span><br><span class="line">A challenge password []:                                                     # 私钥保护密码,可以不输入直接回车</span><br><span class="line">An optional company name []:                                                 # 可选公司名称，可以不输入直接回车Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>生成SSL证书，有效期为365天，生成文件为<code>blog.crt</code>；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">openssl x509 -req -days 365 -<span class="keyword">in</span> blog.csr -signkey blog.key -out blog.crtCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>其实最终有用的文件是两个，一个是证书文件<code>blog.crt</code>，另一个是不需要输入密码的证书私钥文件<code>blog_nopass.key</code>。</li>
+</ul>
+<h2 id="Nginx支持HTTPS"><a href="#Nginx支持HTTPS" class="headerlink" title="Nginx支持HTTPS"></a>Nginx支持HTTPS</h2><blockquote>
+<p>SSL证书生成好了，接下来我们就可以配置Nginx来支持HTTPS了！</p>
+</blockquote>
+<h3 id="安装Nginx"><a href="#安装Nginx" class="headerlink" title="安装Nginx"></a>安装Nginx</h3><ul>
+<li>我们还是使用在Docker容器中安装Nginx的方式，先下载Nginx的Docker镜像；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker pull nginx:1.10Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>下载完成后先运行一次Nginx，由于之后我们要把宿主机的Nginx配置文件映射到Docker容器中去，运行一次方便我们拷贝默认配置；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker run -p 80:80 --name nginx \</span><br><span class="line">-v /mydata/nginx/html:/usr/share/nginx/html \</span><br><span class="line">-v /mydata/nginx/logs:/var/<span class="built_in">log</span>/nginx  \</span><br><span class="line">-d nginx:1.10Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>运行成功后将容器中的Nginx配置目录拷贝到宿主机上去；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker container cp nginx:/etc/nginx /mydata/nginx/Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>将宿主机上的<code>nginx</code>目录改名为<code>conf</code>，要不然<code>/mydata/nginx/nginx</code>这个配置文件目录看着有点别扭；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">mv /mydata/nginx/nginx /mydata/nginx/confCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>创建的Nginx容器复制完配置后就没用了，停止并删除容器；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker stop nginx</span><br><span class="line">docker rm nginxCopy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>使用Docker命令重新启动Nginx服务，需要映射好配置文件，由于我们要支持HTTPS，还需要开放<code>443</code>端口。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker run -p 80:80 -p 443:443 --name nginx \</span><br><span class="line">-v /mydata/nginx/html:/usr/share/nginx/html \</span><br><span class="line">-v /mydata/nginx/logs:/var/<span class="built_in">log</span>/nginx  \</span><br><span class="line">-v /mydata/nginx/conf:/etc/nginx \</span><br><span class="line">-d nginx:1.10Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置支持HTTPS"><a href="#配置支持HTTPS" class="headerlink" title="配置支持HTTPS"></a>配置支持HTTPS</h3><ul>
+<li>将我们生成好的SSL证书和私钥拷贝到Nginx的<code>html/ssl</code>目录下；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">cp blog_nopass.key /mydata/nginx/html/ssl/</span><br><span class="line">cp blog.crt /mydata/nginx/html/ssl/Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>接下来我们需要给<code>blog.macrozheng.com</code>这个域名添加HTTPS支持，在<code>/mydata/nginx/conf/conf.d/</code>目录下添加Nginx配置文件<code>blog.conf</code>，配置文件内容如下；</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">    listen       80; # 同时支持HTTP</span><br><span class="line">    listen       443 ssl; # 添加HTTPS支持</span><br><span class="line">    server_name  blog.macrozheng.com;</span><br><span class="line"></span><br><span class="line">    #SSL配置</span><br><span class="line">    ssl_certificate      /usr/share/nginx/html/ssl/blog/blog.crt; # 配置证书</span><br><span class="line">    ssl_certificate_key  /usr/share/nginx/html/ssl/blog/blog_nopass.key; # 配置证书私钥</span><br><span class="line">    ssl_protocols        TLSv1 TLSv1.1 TLSv1.2; # 配置SSL协议版本</span><br><span class="line">    ssl_ciphers          ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE; # 配置SSL加密算法</span><br><span class="line">    ssl_prefer_server_ciphers  on; # 优先采取服务器算法</span><br><span class="line">    ssl_session_cache    shared:SSL:10m; # 配置共享会话缓存大小</span><br><span class="line">    ssl_session_timeout  10m; # 配置会话超时时间</span><br><span class="line"></span><br><span class="line">    location / &#123;</span><br><span class="line">        root   /usr/share/nginx/html/www;</span><br><span class="line">        index  index.html index.htm;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    location /admin &#123;</span><br><span class="line">        alias   /usr/share/nginx/html/admin;</span><br><span class="line">        index  index.html index.htm;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    location /app &#123;</span><br><span class="line">        alias   /usr/share/nginx/html/app;</span><br><span class="line">        index  index.html index.htm;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    error_page   500 502 503 504  /50x.html;</span><br><span class="line">    location = /50x.html &#123;</span><br><span class="line">        root   /usr/share/nginx/html;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>通过<code>HTTPS</code>访问<code>blog.macrozheng.com</code>这个域名，由于我们使用的是自己签名的SSL证书，浏览器会提示<code>您的连接不是私密连接</code>，点击继续前往可以通过HTTPS正常访问；</li>
+</ul>
+<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_01.png" alt="img"></p>
+<ul>
+<li>我们可以查看下证书的<code>颁发者</code>信息，可以发现正好是之前我们创建SSL证书签名请求文件时录入的信息；</li>
+</ul>
+<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_02.png" alt="img"></p>
+<ul>
+<li>接下来我们需要给<code>api.macrozheng.com</code>这个域名添加HTTPS支持，通过这个域名可以使用HTTPS访问我们的SpringBoot应用，<code>api.crt</code>和<code>api_nopass.key</code>文件需要自行生成，在<code>/mydata/nginx/conf/conf.d/</code>目录下添加Nginx配置文件<code>api.conf</code>，配置文件内容如下；</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">    listen       80; # 同时支持HTTP</span><br><span class="line">    listen       443 ssl; # 添加HTTPS支持</span><br><span class="line">    server_name  api.macrozheng.com; #修改域名</span><br><span class="line"></span><br><span class="line">    #ssl配置</span><br><span class="line">    ssl_certificate      /usr/share/nginx/html/ssl/api/api.crt; # 配置证书</span><br><span class="line">    ssl_certificate_key  /usr/share/nginx/html/ssl/api/api_nopass.key; # 配置证书私钥</span><br><span class="line">    ssl_protocols        TLSv1 TLSv1.1 TLSv1.2; # 配置SSL协议版本 # 配置SSL加密算法</span><br><span class="line">    ssl_ciphers          ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE;</span><br><span class="line">    ssl_prefer_server_ciphers  on; # 优先采取服务器算法</span><br><span class="line">    ssl_session_cache    shared:SSL:10m; # 配置共享会话缓存大小</span><br><span class="line">    ssl_session_timeout  10m; # 配置会话超时时间</span><br><span class="line"></span><br><span class="line">    location / &#123;</span><br><span class="line">        proxy_pass   http://192.168.3.101:8080; # 设置代理服务访问地址</span><br><span class="line">        proxy_set_header  Host $http_host; # 设置客户端真实的域名（包括端口号）</span><br><span class="line">        proxy_set_header  X-Real-IP  $remote_addr; # 设置客户端真实IP</span><br><span class="line">        proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for; # 设置在多层代理时会包含真实客户端及中间每个代理服务器的IP</span><br><span class="line">        proxy_set_header X-Forwarded-Proto $scheme; # 设置客户端真实的协议（http还是https）</span><br><span class="line">        index  index.html index.htm;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    error_page   500 502 503 504  /50x.html;</span><br><span class="line">    location = /50x.html &#123;</span><br><span class="line">        root   /usr/share/nginx/html;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>通过<code>HTTPS</code>访问<code>api.macrozheng.com</code>这个域名，访问地址为：<span class="exturl" data-url="aHR0cHM6Ly9hcGkubWFjcm96aGVuZy5jb20vc3dhZ2dlci11aS5odG1s">https://api.macrozheng.com/swagger-ui.html<i class="fa fa-external-link-alt"></i></span></li>
+</ul>
+<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_03.png" alt="img"></p>
+<ul>
+<li>任意调用一个接口测试下，比如说登录接口，可以发现已经可以通过HTTPS正常访问SpringBoot应用提供的接口。</li>
+</ul>
+<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_04.png" alt="img"></p>
+<h2 id="使用受信任的证书"><a href="#使用受信任的证书" class="headerlink" title="使用受信任的证书"></a>使用受信任的证书</h2><blockquote>
+<p>之前我们使用的是自签名的SSL证书，对于浏览器来说是无效的。使用权威机构颁发的SSL证书浏览器才会认为是有效的，这里给大家推荐两种申请免费SSL证书的方法，一种是从阿里云申请，另一种是从FreeSSL申请。</p>
+</blockquote>
+<h3 id="阿里云证书"><a href="#阿里云证书" class="headerlink" title="阿里云证书"></a>阿里云证书</h3><ul>
+<li>阿里云上可以申请的免费证书目前只有支持单个域名的DV级SSL证书。比如说你有<code>blog.macrozheng.com</code>和<code>api.macrozheng.com</code>两个二级域名需要使用HTTPS，就需要申请两个SSL证书。</li>
+</ul>
+<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_05.png" alt="img"></p>
+<ul>
+<li>申请成功后点击下载Nginx证书即可；</li>
+</ul>
+<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_06.png" alt="img"></p>
+<ul>
+<li>下载完成后解压会有下面两个文件；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">blog.macrozheng.com.key <span class="comment"># 证书私钥文件</span></span><br><span class="line">blog.macrozheng.com.pem <span class="comment"># 证书文件Copy to clipboardErrorCopied</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>拷贝证书文件到Nginx的指定目录下，然后修改配置文件<code>blog.conf</code>，只要修改证书配置路径即可，修改完成后重启Nginx；</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#SSL配置</span><br><span class="line">ssl_certificate      /usr/share/nginx/html/ssl/blog/blog.macrozheng.com.pem; # 配置证书</span><br><span class="line">ssl_certificate_key  /usr/share/nginx/html/ssl/blog/blog.macrozheng.com.key; # 配置证书私钥Copy to clipboardErrorCopied</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>再次通过HTTPS访问<code>blog.macrozheng.com</code>这个域名，发现证书已经有效了，连接也是安全的了。</li>
+</ul>
+<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_07.png" alt="img"></p>
+<h3 id="FreeSSL证书"><a href="#FreeSSL证书" class="headerlink" title="FreeSSL证书"></a>FreeSSL证书</h3><ul>
+<li>如果你有使用通配符域名的需求，可以上<code>FreeSSL</code>申请SSL证书，不过免费的有效期只有3个月，这就意味着你过3个月就要重新申请一次了。</li>
+</ul>
+<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_08.png" alt="img"></p>
+<ul>
+<li>附上官网地址：<span class="exturl" data-url="aHR0cHM6Ly9mcmVlc3NsLmNuLw==">https://freessl.cn/<i class="fa fa-external-link-alt"></i></span></li>
+</ul>
+<h3 id="使用acme-sh自动申请证书"><a href="#使用acme-sh自动申请证书" class="headerlink" title="使用acme.sh自动申请证书"></a>使用<code>acme.sh</code>自动申请证书</h3><ul>
+<li><code>acme.sh</code>脚本实现了<code>acme</code>协议, 可以从<code>letsencrypt</code>生成免费的证书。一般我们申请的证书有效期都是1年，过期就要重新申请了，使用<code>acme.sh</code>脚本可以实现到期自动申请，再也不用担心证书过期了！</li>
+</ul>
+<p><img src="/images/Nginx%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81HTTPS/nginx_https_start_09.png" alt="img"></p>
+]]></content>
+      <categories>
+        <category>分布式/微服务</category>
+      </categories>
+  </entry>
+  <entry>
     <title>Redisson实现业务接口幂等</title>
     <url>/2021/08/07/Redisson%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89/</url>
     <content><![CDATA[<h1 id="Redisson-实现业务接口幂等"><a href="#Redisson-实现业务接口幂等" class="headerlink" title="Redisson 实现业务接口幂等"></a>Redisson 实现业务接口幂等</h1><h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><ul>
@@ -83,60 +225,6 @@
       </categories>
   </entry>
   <entry>
-    <title>整合elk日志收集</title>
-    <url>/2021/08/08/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/</url>
-    <content><![CDATA[<h1 id="整合elk-日志收集"><a href="#整合elk-日志收集" class="headerlink" title="整合elk 日志收集"></a>整合elk 日志收集</h1><p>ELK即Elasticsearch、Logstash、Kibana,组合起来可以搭建线上日志系统，在目前这种分布式微服务系统中，通过ELK 会非常方便的查询和统计日志情况.</p>
-<span id="more"></span>
-
-<h2 id="ELK中各个服务的作用"><a href="#ELK中各个服务的作用" class="headerlink" title="ELK中各个服务的作用"></a>ELK中各个服务的作用</h2><ul>
-<li><p>Elasticsearch:用于存储收集到的日志信息；</p>
-</li>
-<li><p>Logstash:用于收集日志，应用整合了Logstash以后会把日志发送给Logstash,Logstash再把日志转发给Elasticsearch；</p>
-</li>
-<li><p>Kibana:通过Web端的可视化界面来查看日志。</p>
-</li>
-</ul>
-<h2 id="使用Docker-Compose-搭建ELK环境"><a href="#使用Docker-Compose-搭建ELK环境" class="headerlink" title="使用Docker Compose 搭建ELK环境"></a>使用Docker Compose 搭建ELK环境</h2><h3 id="编写docker-compose-yml脚本启动ELK服务"><a href="#编写docker-compose-yml脚本启动ELK服务" class="headerlink" title="编写docker-compose.yml脚本启动ELK服务"></a>编写docker-compose.yml脚本启动ELK服务</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">version: &#x27;3&#x27;</span><br><span class="line">services:</span><br><span class="line">  elasticsearch:</span><br><span class="line">    image: elasticsearch:6.4.0</span><br><span class="line">    container_name: elasticsearch</span><br><span class="line">    environment:</span><br><span class="line">      - &quot;cluster.name=elasticsearch&quot; #设置集群名称为elasticsearch</span><br><span class="line">      - &quot;discovery.type=single-node&quot; #以单一节点模式启动</span><br><span class="line">      - &quot;ES_JAVA_OPTS=-Xms512m -Xmx512m&quot; #设置使用jvm内存大小</span><br><span class="line">    volumes:</span><br><span class="line">      - /mydata/elasticsearch/plugins:/usr/share/elasticsearch/plugins #插件文件挂载</span><br><span class="line">      - /mydata/elasticsearch/data:/usr/share/elasticsearch/data #数据文件挂载</span><br><span class="line">    ports:</span><br><span class="line">      - 9200:9200</span><br><span class="line">  kibana:</span><br><span class="line">    image: kibana:6.4.0</span><br><span class="line">    container_name: kibana</span><br><span class="line">    links:</span><br><span class="line">      - elasticsearch:es #可以用es这个域名访问elasticsearch服务</span><br><span class="line">    depends_on:</span><br><span class="line">      - elasticsearch #kibana在elasticsearch启动之后再启动</span><br><span class="line">    environment:</span><br><span class="line">      - &quot;elasticsearch.hosts=http://es:9200&quot; #设置访问elasticsearch的地址</span><br><span class="line">    ports:</span><br><span class="line">      - 5601:5601</span><br><span class="line">  logstash:</span><br><span class="line">    image: logstash:6.4.0</span><br><span class="line">    container_name: logstash</span><br><span class="line">    volumes:</span><br><span class="line">      - /mydata/logstash/upms-logstash.conf:/usr/share/logstash/pipeline/logstash.conf </span><br><span class="line">    depends_on:</span><br><span class="line">      - elasticsearch #kibana在elasticsearch启动之后再启动</span><br><span class="line">    links:</span><br><span class="line">      - elasticsearch:es #可以用es这个域名访问elasticsearch服务</span><br><span class="line">    ports:</span><br><span class="line">      - 4560:4560</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="创建对应容器挂载目录"><a href="#创建对应容器挂载目录" class="headerlink" title="创建对应容器挂载目录"></a>创建对应容器挂载目录</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mkdir -p /mydata/logstash</span><br><span class="line"></span><br><span class="line">mkdir -p /mydata/elasticsearch/data</span><br><span class="line"></span><br><span class="line">mkdir -p /mydata/elasticsearch/plugins</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">chmod 777 /mydata/elasticsearch/data  # 给777权限，不然启动elasticsearch 可能会有权限问题</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="编写日志采集logstash"><a href="#编写日志采集logstash" class="headerlink" title="编写日志采集logstash"></a>编写日志采集logstash</h3><p>在  <code>/mydata/logstash</code>目录创建 <code>upms-logstash.conf</code></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">input &#123;</span><br><span class="line">  tcp &#123;</span><br><span class="line">    mode =&gt; &quot;server&quot;</span><br><span class="line">    host =&gt; &quot;0.0.0.0&quot;</span><br><span class="line">    port =&gt; 4560</span><br><span class="line">    codec =&gt; json_lines</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">output &#123;</span><br><span class="line">  elasticsearch &#123;</span><br><span class="line">    hosts =&gt; &quot;es:9200&quot;</span><br><span class="line">    index =&gt; &quot;upms-logstash-%&#123;+YYYY.MM.dd&#125;&quot;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="启动ELK-服务"><a href="#启动ELK-服务" class="headerlink" title="启动ELK 服务"></a>启动ELK 服务</h3><p>在<code>docker-compose.yml</code> 同级目录执行 <code>docker-compose up -d</code></p>
-<p>注意：Elasticsearch启动可能需要好几分钟，要耐心等待。</p>
-<p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153415.png" alt="img"></p>
-<h3 id="logstash-安装json-lines-格式插件"><a href="#logstash-安装json-lines-格式插件" class="headerlink" title="logstash 安装json_lines 格式插件"></a>logstash 安装json_lines 格式插件</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># 进入logstash容器</span><br><span class="line">docker exec -it logstash /bin/bash</span><br><span class="line"># 进入bin目录</span><br><span class="line">cd /bin/</span><br><span class="line"># 安装插件</span><br><span class="line">logstash-plugin install logstash-codec-json_lines</span><br><span class="line"># 退出容器</span><br><span class="line">exit</span><br><span class="line"># 重启logstash服务</span><br><span class="line">docker restart logstash</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="访问宿主机5601-kibana"><a href="#访问宿主机5601-kibana" class="headerlink" title="访问宿主机5601 kibana"></a>访问宿主机5601 kibana</h3><p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153435.png" alt="img"></p>
-<h2 id="pig-服务整合Logstash"><a href="#pig-服务整合Logstash" class="headerlink" title="pig 服务整合Logstash"></a>pig 服务整合Logstash</h2><h3 id="添加pom-依赖"><a href="#添加pom-依赖" class="headerlink" title="添加pom 依赖"></a>添加pom 依赖</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;!--集成logstash--&gt;</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;net.logstash.logback&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;logstash-logback-encoder&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;5.3&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="logback-spring-xml-新增appender"><a href="#logback-spring-xml-新增appender" class="headerlink" title="logback-spring.xml 新增appender"></a>logback-spring.xml 新增appender</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"> &lt;!--输出到logstash的appender--&gt;</span><br><span class="line">&lt;appender name=&quot;LOGSTASH&quot; class=&quot;net.logstash.logback.appender.LogstashTcpSocketAppender&quot;&gt;</span><br><span class="line">    &lt;!--可以访问的logstash日志收集端口--&gt;</span><br><span class="line">    &lt;destination&gt;192.168.0.31:4560&lt;/destination&gt;</span><br><span class="line">    &lt;encoder charset=&quot;UTF-8&quot; class=&quot;net.logstash.logback.encoder.LogstashEncoder&quot;/&gt;</span><br><span class="line">&lt;/appender&gt;</span><br><span class="line">&lt;root level=&quot;INFO&quot;&gt;</span><br><span class="line">    &lt;appender-ref ref=&quot;LOGSTASH&quot;/&gt;</span><br><span class="line">&lt;/root&gt;</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="启动pigx-在kibana中查询日志"><a href="#启动pigx-在kibana中查询日志" class="headerlink" title="启动pigx 在kibana中查询日志"></a>启动pigx 在kibana中查询日志</h3><p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153454.png" alt="img"></p>
-<p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153508.png" alt="img"></p>
-<h2 id="同时采集多个模块日志"><a href="#同时采集多个模块日志" class="headerlink" title="同时采集多个模块日志"></a>同时采集多个模块日志</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">每个应用发送到不同的TCP 端口 这里注意logstash 的容器端口映射增加</span><br></pre></td></tr></table></figure>
-
-
-
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">input &#123;</span><br><span class="line">  tcp &#123;</span><br><span class="line">   add_field =&gt; &#123;&quot;service&quot; =&gt; &quot;upms&quot;&#125;</span><br><span class="line">    mode =&gt; &quot;server&quot;</span><br><span class="line">    host =&gt; &quot;0.0.0.0&quot;</span><br><span class="line">    port =&gt; 4560</span><br><span class="line">    codec =&gt; json_lines</span><br><span class="line">  &#125;</span><br><span class="line">  tcp &#123;</span><br><span class="line">   add_field =&gt; &#123;&quot;service&quot; =&gt; &quot;auth&quot;&#125;</span><br><span class="line">    mode =&gt; &quot;server&quot;</span><br><span class="line">    host =&gt; &quot;0.0.0.0&quot;</span><br><span class="line">    port =&gt; 4561</span><br><span class="line">    codec =&gt; json_lines</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">output &#123;</span><br><span class="line">   if [service] == &quot;upms&quot;&#123;</span><br><span class="line">    elasticsearch &#123;</span><br><span class="line">      hosts =&gt; &quot;es:9200&quot;</span><br><span class="line">      index =&gt; &quot;upms-logstash-%&#123;+YYYY.MM.dd&#125;&quot;</span><br><span class="line">    &#125;</span><br><span class="line">   &#125;</span><br><span class="line">  if [service] == &quot;auth&quot;&#123;</span><br><span class="line">    elasticsearch &#123;</span><br><span class="line">      hosts =&gt; &quot;es:9200&quot;</span><br><span class="line">      index =&gt; &quot;auth-logstash-%&#123;+YYYY.MM.dd&#125;&quot;</span><br><span class="line">    &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
-      <categories>
-        <category>分布式/微服务</category>
-      </categories>
-  </entry>
-  <entry>
     <title>Redis 分布式锁</title>
     <url>/2021/08/07/Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/</url>
     <content><![CDATA[<h1 id="Redis-分布式锁"><a href="#Redis-分布式锁" class="headerlink" title="Redis 分布式锁"></a>Redis 分布式锁</h1><h1 id="spring-boot-klock-starter"><a href="#spring-boot-klock-starter" class="headerlink" title="spring-boot-klock-starter"></a>spring-boot-klock-starter</h1><p>基于redis的分布式锁spring-boot starter组件，使得项目拥有分布式锁能力变得异常简单，支持spring boot，和spirng mvc等spring相关项目</p>
@@ -193,6 +281,60 @@
 </ul>
 <p><strong>希望使用者清楚的意识到，如果没有对加锁超时进行有效的设置，那么设置释放锁时超时处理策略是没有意义的。</strong></p>
 ]]></content>
+      <categories>
+        <category>分布式/微服务</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>整合elk日志收集</title>
+    <url>/2021/08/08/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/</url>
+    <content><![CDATA[<h1 id="整合elk-日志收集"><a href="#整合elk-日志收集" class="headerlink" title="整合elk 日志收集"></a>整合elk 日志收集</h1><p>ELK即Elasticsearch、Logstash、Kibana,组合起来可以搭建线上日志系统，在目前这种分布式微服务系统中，通过ELK 会非常方便的查询和统计日志情况.</p>
+<span id="more"></span>
+
+<h2 id="ELK中各个服务的作用"><a href="#ELK中各个服务的作用" class="headerlink" title="ELK中各个服务的作用"></a>ELK中各个服务的作用</h2><ul>
+<li><p>Elasticsearch:用于存储收集到的日志信息；</p>
+</li>
+<li><p>Logstash:用于收集日志，应用整合了Logstash以后会把日志发送给Logstash,Logstash再把日志转发给Elasticsearch；</p>
+</li>
+<li><p>Kibana:通过Web端的可视化界面来查看日志。</p>
+</li>
+</ul>
+<h2 id="使用Docker-Compose-搭建ELK环境"><a href="#使用Docker-Compose-搭建ELK环境" class="headerlink" title="使用Docker Compose 搭建ELK环境"></a>使用Docker Compose 搭建ELK环境</h2><h3 id="编写docker-compose-yml脚本启动ELK服务"><a href="#编写docker-compose-yml脚本启动ELK服务" class="headerlink" title="编写docker-compose.yml脚本启动ELK服务"></a>编写docker-compose.yml脚本启动ELK服务</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">version: &#x27;3&#x27;</span><br><span class="line">services:</span><br><span class="line">  elasticsearch:</span><br><span class="line">    image: elasticsearch:6.4.0</span><br><span class="line">    container_name: elasticsearch</span><br><span class="line">    environment:</span><br><span class="line">      - &quot;cluster.name=elasticsearch&quot; #设置集群名称为elasticsearch</span><br><span class="line">      - &quot;discovery.type=single-node&quot; #以单一节点模式启动</span><br><span class="line">      - &quot;ES_JAVA_OPTS=-Xms512m -Xmx512m&quot; #设置使用jvm内存大小</span><br><span class="line">    volumes:</span><br><span class="line">      - /mydata/elasticsearch/plugins:/usr/share/elasticsearch/plugins #插件文件挂载</span><br><span class="line">      - /mydata/elasticsearch/data:/usr/share/elasticsearch/data #数据文件挂载</span><br><span class="line">    ports:</span><br><span class="line">      - 9200:9200</span><br><span class="line">  kibana:</span><br><span class="line">    image: kibana:6.4.0</span><br><span class="line">    container_name: kibana</span><br><span class="line">    links:</span><br><span class="line">      - elasticsearch:es #可以用es这个域名访问elasticsearch服务</span><br><span class="line">    depends_on:</span><br><span class="line">      - elasticsearch #kibana在elasticsearch启动之后再启动</span><br><span class="line">    environment:</span><br><span class="line">      - &quot;elasticsearch.hosts=http://es:9200&quot; #设置访问elasticsearch的地址</span><br><span class="line">    ports:</span><br><span class="line">      - 5601:5601</span><br><span class="line">  logstash:</span><br><span class="line">    image: logstash:6.4.0</span><br><span class="line">    container_name: logstash</span><br><span class="line">    volumes:</span><br><span class="line">      - /mydata/logstash/upms-logstash.conf:/usr/share/logstash/pipeline/logstash.conf </span><br><span class="line">    depends_on:</span><br><span class="line">      - elasticsearch #kibana在elasticsearch启动之后再启动</span><br><span class="line">    links:</span><br><span class="line">      - elasticsearch:es #可以用es这个域名访问elasticsearch服务</span><br><span class="line">    ports:</span><br><span class="line">      - 4560:4560</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="创建对应容器挂载目录"><a href="#创建对应容器挂载目录" class="headerlink" title="创建对应容器挂载目录"></a>创建对应容器挂载目录</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mkdir -p /mydata/logstash</span><br><span class="line"></span><br><span class="line">mkdir -p /mydata/elasticsearch/data</span><br><span class="line"></span><br><span class="line">mkdir -p /mydata/elasticsearch/plugins</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">chmod 777 /mydata/elasticsearch/data  # 给777权限，不然启动elasticsearch 可能会有权限问题</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="编写日志采集logstash"><a href="#编写日志采集logstash" class="headerlink" title="编写日志采集logstash"></a>编写日志采集logstash</h3><p>在  <code>/mydata/logstash</code>目录创建 <code>upms-logstash.conf</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">input &#123;</span><br><span class="line">  tcp &#123;</span><br><span class="line">    mode =&gt; &quot;server&quot;</span><br><span class="line">    host =&gt; &quot;0.0.0.0&quot;</span><br><span class="line">    port =&gt; 4560</span><br><span class="line">    codec =&gt; json_lines</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">output &#123;</span><br><span class="line">  elasticsearch &#123;</span><br><span class="line">    hosts =&gt; &quot;es:9200&quot;</span><br><span class="line">    index =&gt; &quot;upms-logstash-%&#123;+YYYY.MM.dd&#125;&quot;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="启动ELK-服务"><a href="#启动ELK-服务" class="headerlink" title="启动ELK 服务"></a>启动ELK 服务</h3><p>在<code>docker-compose.yml</code> 同级目录执行 <code>docker-compose up -d</code></p>
+<p>注意：Elasticsearch启动可能需要好几分钟，要耐心等待。</p>
+<p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153415.png" alt="img"></p>
+<h3 id="logstash-安装json-lines-格式插件"><a href="#logstash-安装json-lines-格式插件" class="headerlink" title="logstash 安装json_lines 格式插件"></a>logstash 安装json_lines 格式插件</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># 进入logstash容器</span><br><span class="line">docker exec -it logstash /bin/bash</span><br><span class="line"># 进入bin目录</span><br><span class="line">cd /bin/</span><br><span class="line"># 安装插件</span><br><span class="line">logstash-plugin install logstash-codec-json_lines</span><br><span class="line"># 退出容器</span><br><span class="line">exit</span><br><span class="line"># 重启logstash服务</span><br><span class="line">docker restart logstash</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="访问宿主机5601-kibana"><a href="#访问宿主机5601-kibana" class="headerlink" title="访问宿主机5601 kibana"></a>访问宿主机5601 kibana</h3><p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153435.png" alt="img"></p>
+<h2 id="pig-服务整合Logstash"><a href="#pig-服务整合Logstash" class="headerlink" title="pig 服务整合Logstash"></a>pig 服务整合Logstash</h2><h3 id="添加pom-依赖"><a href="#添加pom-依赖" class="headerlink" title="添加pom 依赖"></a>添加pom 依赖</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;!--集成logstash--&gt;</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;net.logstash.logback&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;logstash-logback-encoder&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;5.3&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="logback-spring-xml-新增appender"><a href="#logback-spring-xml-新增appender" class="headerlink" title="logback-spring.xml 新增appender"></a>logback-spring.xml 新增appender</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"> &lt;!--输出到logstash的appender--&gt;</span><br><span class="line">&lt;appender name=&quot;LOGSTASH&quot; class=&quot;net.logstash.logback.appender.LogstashTcpSocketAppender&quot;&gt;</span><br><span class="line">    &lt;!--可以访问的logstash日志收集端口--&gt;</span><br><span class="line">    &lt;destination&gt;192.168.0.31:4560&lt;/destination&gt;</span><br><span class="line">    &lt;encoder charset=&quot;UTF-8&quot; class=&quot;net.logstash.logback.encoder.LogstashEncoder&quot;/&gt;</span><br><span class="line">&lt;/appender&gt;</span><br><span class="line">&lt;root level=&quot;INFO&quot;&gt;</span><br><span class="line">    &lt;appender-ref ref=&quot;LOGSTASH&quot;/&gt;</span><br><span class="line">&lt;/root&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="启动pigx-在kibana中查询日志"><a href="#启动pigx-在kibana中查询日志" class="headerlink" title="启动pigx 在kibana中查询日志"></a>启动pigx 在kibana中查询日志</h3><p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153454.png" alt="img"></p>
+<p><img src="/images/Spring%E6%95%B4%E5%90%88elk%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/20200901153508.png" alt="img"></p>
+<h2 id="同时采集多个模块日志"><a href="#同时采集多个模块日志" class="headerlink" title="同时采集多个模块日志"></a>同时采集多个模块日志</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">每个应用发送到不同的TCP 端口 这里注意logstash 的容器端口映射增加</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">input &#123;</span><br><span class="line">  tcp &#123;</span><br><span class="line">   add_field =&gt; &#123;&quot;service&quot; =&gt; &quot;upms&quot;&#125;</span><br><span class="line">    mode =&gt; &quot;server&quot;</span><br><span class="line">    host =&gt; &quot;0.0.0.0&quot;</span><br><span class="line">    port =&gt; 4560</span><br><span class="line">    codec =&gt; json_lines</span><br><span class="line">  &#125;</span><br><span class="line">  tcp &#123;</span><br><span class="line">   add_field =&gt; &#123;&quot;service&quot; =&gt; &quot;auth&quot;&#125;</span><br><span class="line">    mode =&gt; &quot;server&quot;</span><br><span class="line">    host =&gt; &quot;0.0.0.0&quot;</span><br><span class="line">    port =&gt; 4561</span><br><span class="line">    codec =&gt; json_lines</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">output &#123;</span><br><span class="line">   if [service] == &quot;upms&quot;&#123;</span><br><span class="line">    elasticsearch &#123;</span><br><span class="line">      hosts =&gt; &quot;es:9200&quot;</span><br><span class="line">      index =&gt; &quot;upms-logstash-%&#123;+YYYY.MM.dd&#125;&quot;</span><br><span class="line">    &#125;</span><br><span class="line">   &#125;</span><br><span class="line">  if [service] == &quot;auth&quot;&#123;</span><br><span class="line">    elasticsearch &#123;</span><br><span class="line">      hosts =&gt; &quot;es:9200&quot;</span><br><span class="line">      index =&gt; &quot;auth-logstash-%&#123;+YYYY.MM.dd&#125;&quot;</span><br><span class="line">    &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
       <categories>
         <category>分布式/微服务</category>
       </categories>
