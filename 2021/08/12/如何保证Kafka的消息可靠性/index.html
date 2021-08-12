@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta http-equiv="Cache-Control" content="no-transform">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <meta name="baidu-site-verification" content="code-GwWuEJvr9F">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"github.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":true},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":{"disqus":{"text":"Load Disqus","order":-1}}},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="如何保证Kafka的消息可靠性Producer保证消息传输过程中不丢失org.springframework.boot.autoconfigure.kafka.KafkaProperties中可以看见所有配置项，这次讲讲如何保证消息在传输过程中不因为服务器突然宕机而没有收到消息，但producer却认为消息已经发送成功的问题。spring.kafka.producer.acks 这个配置项有3个可">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何保证Kafka的消息可靠性">
+<meta property="og:url" content="https://github.com/gaofee/gaofee.github.io.git/2021/08/12/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81Kafka%E7%9A%84%E6%B6%88%E6%81%AF%E5%8F%AF%E9%9D%A0%E6%80%A7/index.html">
+<meta property="og:site_name" content="云记">
+<meta property="og:description" content="如何保证Kafka的消息可靠性Producer保证消息传输过程中不丢失org.springframework.boot.autoconfigure.kafka.KafkaProperties中可以看见所有配置项，这次讲讲如何保证消息在传输过程中不因为服务器突然宕机而没有收到消息，但producer却认为消息已经发送成功的问题。spring.kafka.producer.acks 这个配置项有3个可">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-08-12T05:55:18.992Z">
+<meta property="article:modified_time" content="2021-08-12T06:09:44.052Z">
+<meta property="article:author" content="云记">
+<meta property="article:tag" content="Java,面试,offer,技术,微服务,分布式,中间件,数据库">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://github.com/gaofee/gaofee.github.io.git/2021/08/12/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81Kafka%E7%9A%84%E6%B6%88%E6%81%AF%E5%8F%AF%E9%9D%A0%E6%80%A7/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>如何保证Kafka的消息可靠性 | 云记</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">云记</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">云记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">3</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">8</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://github.com/gaofee/gaofee.github.io.git/2021/08/12/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81Kafka%E7%9A%84%E6%B6%88%E6%81%AF%E5%8F%AF%E9%9D%A0%E6%80%A7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="云记">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="云记">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          如何保证Kafka的消息可靠性
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-08-12 13:55:18 / 修改时间：14:09:44" itemprop="dateCreated datePublished" datetime="2021-08-12T13:55:18+08:00">2021-08-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">中间件</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2021/08/12/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81Kafka%E7%9A%84%E6%B6%88%E6%81%AF%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="post-meta-item leancloud_visitors" data-flag-title="如何保证Kafka的消息可靠性" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2021/08/12/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81Kafka%E7%9A%84%E6%B6%88%E6%81%AF%E5%8F%AF%E9%9D%A0%E6%80%A7/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/08/12/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81Kafka%E7%9A%84%E6%B6%88%E6%81%AF%E5%8F%AF%E9%9D%A0%E6%80%A7/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="如何保证Kafka的消息可靠性"><a href="#如何保证Kafka的消息可靠性" class="headerlink" title="如何保证Kafka的消息可靠性"></a>如何保证Kafka的消息可靠性</h1><h3 id="Producer保证消息传输过程中不丢失"><a href="#Producer保证消息传输过程中不丢失" class="headerlink" title="Producer保证消息传输过程中不丢失"></a>Producer保证消息传输过程中不丢失</h3><p>org.springframework.boot.autoconfigure.kafka.KafkaProperties中可以看见所有配置项，这次讲讲如何保证消息在传输过程中不因为服务器突然宕机而没有收到消息，但producer却认为消息已经发送成功的问题。<br>spring.kafka.producer.acks 这个配置项有3个可选，分别是0,1,-1。</p>
+<span id="more"></span>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ack=<span class="number">0</span>：就是说消息只要通过网络发送出去就不会再管，无论是否被服务器接收到。也就是我只管发，你接到还是没接到我并不关心。</span><br><span class="line">ack=<span class="number">1</span>（默认）：producer(消息发送方)收到leader副本的确认，才会认为发送成功。就像是TCP连接一样，我要收到服务器的ack才行。</span><br><span class="line">ack=-<span class="number">1</span>(ALL)：leader副本在返回确认或错误响应之前，会等待所有follower副本都收到消息，才会认为发送成功。这个ALL很好理解，就是所有副本都收到消息，才会认为发送成功。</span><br><span class="line">事务</span><br></pre></td></tr></table></figure>
+
+
+<p>关于多条消息发送需要原子性的事务操作，需要配置spring.kafka.producer.transaction-id-prefix来开启事务(否则即使抛出异常消息还是会被发出去)，但需要注意的是，如果开启事务，那么之后就必须使用事务方式kafkaTemplate.executeInTransaction或@Transactional，否则会报错。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kafkaTemplate.executeInTransaction(operations -&gt;&#123;</span><br><span class="line">       operations.send(topic1,message);</span><br><span class="line">       operations.send(topic2,message);</span><br><span class="line">       operations.send(topic3,message);</span><br><span class="line">       <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;error&quot;</span>);<span class="comment">//模拟报错</span></span><br><span class="line">   &#125;);</span><br></pre></td></tr></table></figure>
+
+<h3 id="Consumer手动确认消息"><a href="#Consumer手动确认消息" class="headerlink" title="Consumer手动确认消息"></a>Consumer手动确认消息</h3><p>仅仅保证消息传输过程中不丢失还不够，也许消息在消费过程中（拿到消息还没有做完事），consumer的服务器挂了或者异常了呢？这条消息同样会丢失。<br>org.springframework.boot.autoconfigure.kafka.KafkaProperties 中同样有配置可以修改全局设置，如果不想变更全局设置，可以自己写个Bean。</p>
+<h3 id="全局配置"><a href="#全局配置" class="headerlink" title="全局配置"></a>全局配置</h3><figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">spring.kafka.consumer.enable-auto-commit=false</span></span><br><span class="line"><span class="string">spring.kafka.consumer.auto-offset-reset=earliest</span></span><br><span class="line"><span class="string">spring.kafka.listener.ack-mode=manual_immediate</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="auto-offset-reset值含义解释"><a href="#auto-offset-reset值含义解释" class="headerlink" title="auto.offset.reset值含义解释"></a>auto.offset.reset值含义解释</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">earliest</span><br><span class="line">当各分区下有已提交的offset时，从提交的offset开始消费；无提交的offset时，从头开始消费</span><br><span class="line">latest</span><br><span class="line">当各分区下有已提交的offset时，从提交的offset开始消费；无提交的offset时，消费新产生的该分区下的数据</span><br><span class="line">none</span><br><span class="line">topic各分区都存在已提交的offset时，从offset后开始消费；只要有一个分区不存在已提交的offset，则抛出异常</span><br><span class="line"></span><br><span class="line">#### spring.kafka.listener.ack-mode</span><br><span class="line">org.springframework.kafka.listener.ContainerProperties.AckMode中可以看见所有的值。</span><br><span class="line">想要手动确认消息，要么改为MANUAL,要么改为MANUAL_IMMEDIATE.</span><br><span class="line">关于MANUAL_IMMEDIATE和MANUAL的区别就是MANUAL不会立即提交，它是获取poll中的值后设置record，最后批量提交。</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"> <span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">KafkaConsumer</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);</span><br><span class="line">    <span class="meta">@KafkaListener(topics = &quot;first-topic&quot;,groupId=&quot;test-1&quot;,autoStartup=&quot;true&quot;)</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">read</span><span class="params">(ConsumerRecord&lt;?,?&gt; record, Acknowledgment ack)</span></span>&#123;</span><br><span class="line">        logger.info(record.topic());</span><br><span class="line">        logger.info((String) record.key());</span><br><span class="line">        logger.info((String) record.value());</span><br><span class="line">        logger.info(String.valueOf(record.headers()));</span><br><span class="line">		<span class="comment">//手动确认消息</span></span><br><span class="line"> 		<span class="comment">//拒绝消息，过1000毫秒后重新消费，也就是延迟处理</span></span><br><span class="line">	<span class="comment">//ack.nack(1000);</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>}</p>
+<h3 id="自建ConcurrentKafkaListenerContainerFactory"><a href="#自建ConcurrentKafkaListenerContainerFactory" class="headerlink" title="自建ConcurrentKafkaListenerContainerFactory"></a>自建ConcurrentKafkaListenerContainerFactory</h3><p>在不想修改全局配置的情况下，可以自己创建Factory，通过指定containerFactory使用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@EnableKafka</span></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">KafkaConfig</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Bean(&quot;manualListenerContainerFactory&quot;)</span></span><br><span class="line">    ConcurrentKafkaListenerContainerFactory&lt;?, ?&gt; kafkaListenerContainerFactory(</span><br><span class="line">            ConcurrentKafkaListenerContainerFactoryConfigurer configurer,</span><br><span class="line">            ConsumerFactory&lt;?, ?&gt; kafkaConsumerFactory) &#123;</span><br><span class="line">    ConcurrentKafkaListenerContainerFactory&lt;Object, Object&gt; factory = <span class="keyword">new</span> 	 ConcurrentKafkaListenerContainerFactory&lt;&gt;();</span><br><span class="line">    configurer.configure(factory, (ConsumerFactory&lt;Object, Object&gt;) kafkaConsumerFactory);</span><br><span class="line"></span><br><span class="line">    factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);</span><br><span class="line">    factory.getContainerProperties().setAckTime(<span class="number">10000</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> factory;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">KafkaConsumer</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);</span><br><span class="line">    <span class="meta">@KafkaListener(containerFactory = &quot;manualListenerContainerFactory&quot; ,topics = &quot;first-topic&quot;,groupId=&quot;test-1&quot;,autoStartup=&quot;true&quot;)</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">read</span><span class="params">(ConsumerRecord&lt;?,?&gt; record, Acknowledgment ack)</span></span>&#123;</span><br><span class="line">        logger.info(record.topic());</span><br><span class="line">        logger.info((String) record.key());</span><br><span class="line">        logger.info((String) record.value());</span><br><span class="line">        logger.info(String.valueOf(record.headers()));</span><br><span class="line">        ack.acknowledge();</span><br><span class="line">	<span class="comment">//拒绝消息，过1000毫秒后重新消费，也就是延迟处理</span></span><br><span class="line">	<span class="comment">//ack.nack(1000);</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="group-需要注意的地方"><a href="#group-需要注意的地方" class="headerlink" title="group 需要注意的地方"></a>group 需要注意的地方</h3><p>groupId=”test-${random.int}”，为了分布式情况下，多个服务不轮询处理，我们常常会随机groupId，但这种方式会让groupId每次都随机，那么产生的结果是，虽然达到了广播的效果，但每次重启都默认所有消息都没有确认过，因为groupId每次重启都是随机的。<br>所以groupId最好是按照服务名或hostname等来写。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>如果消息没有经过确认或打回，那么这个消息将在下次启动consumer的时候根据auto.offset.reset重新消费消息。<br>如果groupId不同，那么消息确认是不会影响其他group的，哪怕是在同个topic中。(也就是说，groupId为test-1的consumer没有确认消息，而test-2的consumer确认了消息，那么仅test-1的consumer下次启动会重新读取到消息。)<br>Acknowledgment#nack可以将消息直接打回，延迟处理。<br>如果没有Acknowledgment#ack也没有Acknowledgment#nack，那么消息只有在下次重启consumer的时候才会被重新消费。</p>
+
+    </div>
+
+    
+    
+    
+        <div class="reward-container">
+  <div></div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    打赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechatpay.png" alt="云记 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.png" alt="云记 支付宝">
+        <p>支付宝</p>
+      </div>
+
+  </div>
+</div>
+
+
+      <footer class="post-footer">
+
+        
+  <div class="post-widgets">
+    <div class="wp_rating">
+      <div id="wpac-rating"></div>
+    </div>
+  </div>
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/08/12/%E5%9F%BA%E4%BA%8E%E9%98%BF%E9%87%8C%E5%B7%B4%E5%B7%B4seata%E7%9A%84%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="prev" title="基于阿里巴巴seata的分布式事务实践">
+      <i class="fa fa-chevron-left"></i> 基于阿里巴巴seata的分布式事务实践
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81Kafka%E7%9A%84%E6%B6%88%E6%81%AF%E5%8F%AF%E9%9D%A0%E6%80%A7"><span class="nav-number">1.</span> <span class="nav-text">如何保证Kafka的消息可靠性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Producer%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%BC%A0%E8%BE%93%E8%BF%87%E7%A8%8B%E4%B8%AD%E4%B8%8D%E4%B8%A2%E5%A4%B1"><span class="nav-number">1.0.1.</span> <span class="nav-text">Producer保证消息传输过程中不丢失</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Consumer%E6%89%8B%E5%8A%A8%E7%A1%AE%E8%AE%A4%E6%B6%88%E6%81%AF"><span class="nav-number">1.0.2.</span> <span class="nav-text">Consumer手动确认消息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%A8%E5%B1%80%E9%85%8D%E7%BD%AE"><span class="nav-number">1.0.3.</span> <span class="nav-text">全局配置</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#auto-offset-reset%E5%80%BC%E5%90%AB%E4%B9%89%E8%A7%A3%E9%87%8A"><span class="nav-number">1.0.3.1.</span> <span class="nav-text">auto.offset.reset值含义解释</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E5%BB%BAConcurrentKafkaListenerContainerFactory"><span class="nav-number">1.0.4.</span> <span class="nav-text">自建ConcurrentKafkaListenerContainerFactory</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#group-%E9%9C%80%E8%A6%81%E6%B3%A8%E6%84%8F%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-number">1.0.5.</span> <span class="nav-text">group 需要注意的地方</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">1.0.6.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">云记</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRlZS5jb20vZ2Nsb3Vkcw==" title="GitHub → https:&#x2F;&#x2F;gitee.com&#x2F;gclouds"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">云记</span>
+</div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+  <script defer src="/lib/three/three.min.js"></script>
+    <script defer src="//cdn.jsdelivr.net/gh/theme-next/theme-next-three@1/canvas_lines.min.js"></script>
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+  <script>
+  if (CONFIG.page.isPost) {
+    wpac_init = window.wpac_init || [];
+    wpac_init.push({
+      widget: 'Rating',
+      id    : ,
+      el    : 'wpac-rating',
+      color : 'fc6423'
+    });
+    (function() {
+      if ('WIDGETPACK_LOADED' in window) return;
+      WIDGETPACK_LOADED = true;
+      var mc = document.createElement('script');
+      mc.type = 'text/javascript';
+      mc.async = true;
+      mc.src = '//embed.widgetpack.com/widget.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(mc, s.nextSibling);
+    })();
+  }
+  </script>
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : false,
+      appId      : 'QCF1KJ4ILmj73nVybNhgiHEJ-gzGzoHsz',
+      appKey     : 'di34H8f5jhsb77nm4gtqtxQu',
+      placeholder: "发表下你的看法!",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : true,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : true,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>
