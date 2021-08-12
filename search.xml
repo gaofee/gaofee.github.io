@@ -742,8 +742,10 @@
   <entry>
     <title>基于阿里巴巴seata的分布式事务实践</title>
     <url>/2021/08/12/%E5%9F%BA%E4%BA%8E%E9%98%BF%E9%87%8C%E5%B7%B4%E5%B7%B4seata%E7%9A%84%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/</url>
-    <content><![CDATA[<h1 id="基于阿里巴巴seata的分布式事务"><a href="#基于阿里巴巴seata的分布式事务" class="headerlink" title="基于阿里巴巴seata的分布式事务"></a>基于阿里巴巴seata的分布式事务</h1><h1 id><a href="#" class="headerlink" title></a><span id="more"></span></h1><h1 id="分布式事务"><a href="#分布式事务" class="headerlink" title="分布式事务"></a>分布式事务</h1><p>数据库事务的基本概念（ACID）</p>
+    <content><![CDATA[<h1 id="基于阿里巴巴seata的分布式事务"><a href="#基于阿里巴巴seata的分布式事务" class="headerlink" title="基于阿里巴巴seata的分布式事务"></a>基于阿里巴巴seata的分布式事务</h1><h1 id="分布式事务"><a href="#分布式事务" class="headerlink" title="分布式事务"></a>分布式事务</h1><p>数据库事务的基本概念（ACID）</p>
 <p><strong>原子性</strong>（Atomicity）：操作这些指令时，要么全部执行成功，要么全部不执行。只要其中一个指令执行失败，所有的指令都执行失败，数据进行回滚，回到执行指令前的数据状态。<code>要么执行，要么不执行</code></p>
+<span id="more"></span>
+
 <p><strong>一致性</strong>（Consistency）：事务的执行使数据从一个状态转换为另一个状态，数据库的完整性约束没有被破坏。<code>能量守恒，总量不变</code></p>
 <p><strong>隔离性</strong>（Isolation）：隔离性是当多个用户并发访问数据库时，比如操作同一张表时，数据库为每一个用户开启的事务，不能被其他事务的操作所干扰，多个并发事务之间要相互隔离。信息彼此独立，互不干扰</p>
 <p><strong>持久性</strong>（Durability）：当事务正确完成后，它对于数据的改变是永久性的。不会轻易丢失</p>
