@@ -3,10 +3,10 @@
   <entry>
     <title>IntelliJ IDEA的安装配置及使用</title>
     <url>/2021/08/12/IntelliJ%20IDEA%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E5%8F%8A%E4%BD%BF%E7%94%A8/</url>
-    <content><![CDATA[<h1 id="1-IntelliJ-IDEA介绍安装"><a href="#1-IntelliJ-IDEA介绍安装" class="headerlink" title="1 IntelliJ IDEA介绍安装"></a>1 IntelliJ IDEA介绍安装</h1><p>IDEA(<span class="exturl" data-url="aHR0cHM6Ly93d3cuamV0YnJhaW5zLmNvbS9pZGVhLyklRTYlOTglQUY=">https://www.jetbrains.com/idea/)是<i class="fa fa-external-link-alt"></i></span> JetBrains 公司的产品</p>
-<p><strong>IntelliJ IDEA</strong> <strong>介绍</strong>IDEA，全称 IntelliJ IDEA，是 Java 语言的集成开发环境，IDEA 在业界被公认为是最好的 java 开发工具之一，尤其在智能代码助手、代码自动提示、重构、J2EE支持、Ant、JUnit、CVS 整合、代码审查、创新的 GUI 设计等方面的功能可以说是超常的。IntelliJ IDEA 在 2015 年的官网上这样介绍自己：Excel at enterprise, mobile and web development with Java, Scala and Groovy, with all the latest modern technologies and frameworks available out of the box.简明翻译：IntelliJ IDEA 主要用于支持 Java、Scala、Groovy 等语言的开发工具，同时具备支持目前主流的技术和框架，擅长于企业应用、移动应用和 Web 应用的开发。</p>
+    <content><![CDATA[<h1 id="1-IntelliJ-IDEA介绍安装"><a href="#1-IntelliJ-IDEA介绍安装" class="headerlink" title="1 IntelliJ IDEA介绍安装"></a>1 IntelliJ IDEA介绍安装</h1><p><strong>IntelliJ IDEA</strong> <strong>介绍</strong>IDEA，全称 IntelliJ IDEA，是 Java 语言的集成开发环境，IDEA 在业界被公认为是最好的 java 开发工具之一，尤其在智能代码助手、代码自动提示、重构、J2EE支持、Ant、JUnit、CVS 整合、代码审查、</p>
 <span id="more"></span>
 
+<p>创新的 GUI 设计等方面的功能可以说是超常的。IntelliJ IDEA 在 2015 年的官网上这样介绍自己：Excel at enterprise, mobile and web development with Java, Scala and Groovy, with all the latest modern technologies and frameworks available out of the box.简明翻译：IntelliJ IDEA 主要用于支持 Java、Scala、Groovy 等语言的开发工具，同时具备支持目前主流的技术和框架，擅长于企业应用、移动应用和 Web 应用的开发。</p>
 <h2 id="1-1-IDEA-的主要优势"><a href="#1-1-IDEA-的主要优势" class="headerlink" title="1.1 IDEA 的主要优势"></a>1.1 <strong>IDEA</strong> <strong>的主要优势</strong></h2><p>① 强大的整合能力。比如：Git、Maven、Spring 等</p>
 <p>② 提示功能的快速、便捷</p>
 <p>③ 提示功能的范围广</p>
@@ -38,7 +38,7 @@
 <p><img src="/images/IntelliJIDEA%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E5%8F%8A%E4%BD%BF%E7%94%A8/image-20210810121018421.png" alt="image-20210810121018421"></p>
 <h3 id="2-2-第二步"><a href="#2-2-第二步" class="headerlink" title="2.2  第二步"></a>2.2  第二步</h3><h2 id><a href="#" class="headerlink" title></a><img src="/images/IntelliJIDEA%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E5%8F%8A%E4%BD%BF%E7%94%A8/image-20210810121836069.png" alt="image-20210810121836069"></h2><p><img src="/images/IntelliJIDEA%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E5%8F%8A%E4%BD%BF%E7%94%A8/image-20210810121859062.png" alt="image-20210810121859062"></p>
 <h3 id="2-2-第三步-项目位置"><a href="#2-2-第三步-项目位置" class="headerlink" title="2.2 第三步 项目位置"></a>2.2 第三步 项目位置</h3><p><img src="/images/IntelliJIDEA%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E5%8F%8A%E4%BD%BF%E7%94%A8/image-20210810122117227.png" alt="image-20210810122117227"></p>
-<h3 id="-1"><a href="#-1" class="headerlink" title></a></h3><h3 id="1-5-2-配置主题"><a href="#1-5-2-配置主题" class="headerlink" title="1.5.2 配置主题"></a>1.5.2 配置主题</h3><p><img src="/images/IntelliJIDEA%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E5%8F%8A%E4%BD%BF%E7%94%A8/image-20210810111527388.png" alt="image-20210810111527388"></p>
+<h3 id="1-5-2-配置主题"><a href="#1-5-2-配置主题" class="headerlink" title="1.5.2 配置主题"></a>1.5.2 配置主题</h3><p><img src="/images/IntelliJIDEA%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E5%8F%8A%E4%BD%BF%E7%94%A8/image-20210810111527388.png" alt="image-20210810111527388"></p>
 <h3 id="1-5-3-配置快捷键"><a href="#1-5-3-配置快捷键" class="headerlink" title="1.5.3 配置快捷键"></a>1.5.3 配置快捷键</h3><p>如果一开始用的是eclipse ，现在使用idea可能不适应，在这里可以设置和eclipse的同样的快捷键配置</p>
 <p><img src="/images/IntelliJIDEA%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E5%8F%8A%E4%BD%BF%E7%94%A8/image-20210810112847098.png" alt="image-20210810112847098"></p>
 <h3 id="1-5-4-如果想学习idea的快捷建。这里列出常见的"><a href="#1-5-4-如果想学习idea的快捷建。这里列出常见的" class="headerlink" title="1.5.4 如果想学习idea的快捷建。这里列出常见的"></a>1.5.4 如果想学习idea的快捷建。这里列出常见的</h3><p><span class="exturl" data-url="aHR0cHM6Ly93d3cucGhwLmNuL2phdmEvZ3VpZGUvNDc4ODc2Lmh0bWw=">https://www.php.cn/java/guide/478876.html<i class="fa fa-external-link-alt"></i></span></p>
