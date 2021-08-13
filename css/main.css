@@ -1224,7 +1224,7 @@ pre .javascript .function {
 }
 .links-of-author a::before,
 .links-of-author span.exturl::before {
-  background: #b898d9;
+  background: #a37d4a;
   border-radius: 50%;
   content: ' ';
   display: inline-block;
@@ -2761,4 +2761,7 @@ mjx-container + br {
   .pagination {
     margin: 8px 0 0;
   }
+}
+.site-brand-container {
+  background: rgba(43,108,205,0.8);
 }
